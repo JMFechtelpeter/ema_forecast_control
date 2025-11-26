@@ -1,4 +1,4 @@
-# Code Accompanying: *[Manuscript Title]*
+# Code Accompanying: *Computational network models for forecasting and control of mental health trajectories in digital applications*
  
 This repository contains the code used for the analyses in the manuscript:
  
