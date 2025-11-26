@@ -1,0 +1,147 @@
+ema_items:
+    EMA_mood:
+        target_construct: positive affect
+        category_manu: none
+        question: Ich fühle mich gut.
+        rescaled: 0
+        conditional: 0
+    EMA_disappointed:
+        target_construct: self-esteem
+        category_manu: negative
+        question: Ich bin von mir enttäuscht.
+        rescaled: 1
+        conditional: 0
+    EMA_scared:
+        target_construct: negative affect
+        category_manu: negative
+        question: Ich fühle mich ängstlich. 
+        rescaled: 1
+        conditional: 0
+    EMA_worry:
+        target_construct: worrying
+        category_manu: negative
+        question: Ich bin nachdenklich.
+        rescaled: 1
+        conditional: 0
+    EMA_down:
+        target_construct: negative affect
+        category_manu: negative
+        question: Ich fühle mich niedergeschlagen.
+        rescaled: 1
+        conditional: 0
+    EMA_sad:
+        target_construct: negative affect
+        category_manu: negative
+        question: Ich fühle mich traurig.
+        rescaled: 1
+        conditional: 0
+    EMA_confidence:
+        target_construct: self-esteem
+        category_manu: positive
+        question: Ich fühle mich selbstbewusst.
+        rescaled: 0
+        conditional: 0
+    EMA_emotion_control:
+        target_construct: emotion regulation
+        category_manu: none
+        question: Ich habe meine negativen Gefühle im Griff.
+        rescaled: 0
+        conditional: 1
+    EMA_stress:
+        target_construct: stress
+        category_manu: none
+        question: Ich fühle mich gestresst.
+        rescaled: 1
+        conditional: 0
+    EMA_lonely:
+        target_construct: social isolation
+        category_manu: negative
+        question: Ich fühle mich einsam.
+        rescaled: 1
+        conditional: 0
+    EMA_energetic:
+        target_construct: activity level
+        category_manu: positive
+        question: Ich bin voller Energie.
+        rescaled: 0
+        conditional: 0
+    EMA_concentration:
+        target_construct: stress
+        category_manu: positive
+        question: Ich habe Schwierigkeiten mich zu konzentrieren.
+        rescaled: 0
+        conditional: 0
+    EMA_emotion_change:
+        target_construct: emotion regulation
+        category_manu: none
+        question: Ich kann meine negativen Gefühle zum Positiven verändern. 
+        rescaled: 0
+        conditional: 1
+    EMA_resilience:
+        target_construct: resilience
+        category_manu: none
+        question: Ich kann mit allen Schwierigkeiten umgehen, auf die ich vielleicht treffen werde.
+        rescaled: 0
+        conditional: 0
+    EMA_tired:
+        target_construct: activity level
+        category_manu: none
+        question: Ich bin müde.
+        rescaled: 1
+        conditional: 0
+    EMA_satisfied:
+        target_construct: positive affect
+        category_manu: positive
+        question: Ich bin zufrieden.
+        rescaled: 0
+        conditional: 0
+    EMA_relaxed:
+        target_construct: positive affect
+        category_manu: positive
+        question: Ich bin entspannt.
+        rescaled: 0
+        conditional: 0
+
+input_items:
+    EMA_sleep:
+        target_construct: sleep
+        category_manu: none
+        question: Ich habe letzte Nacht erholsam geschlafen.
+        rescaled: 0
+        conditional: 1
+    EMA_joyful_day:
+        target_construct: quality of life
+        category_manu: none
+        question: Ich freue mich auf den Tag.
+        rescaled: 0
+        conditional: 1
+    EMA_feelactive_sincebeep:
+        target_construct: activity level
+        category_manu: none
+        question: Ich war seit der letzten Stimmungsabfrage körperlich aktiv.
+        rescaled: 0
+        conditional: 0
+    EMA_activity_pleas:
+        target_construct: stress
+        category_manu: none
+        question: Was ich gerade mache ist angenehm.
+        rescaled: 0
+        conditional: 0
+    EMA_social_satisfied:
+        target_construct: stress
+        category_manu: none
+        question: Das ist angenehm (meine Gesellschaft)/Ich wäre lieber unter Leuten..
+        rescaled: 0
+        conditional: 1
+    EMA_social_alone_yes:
+        target_construct: none
+        category_manu: none
+        question: Ich bin alleine. 
+        rescaled: 0
+        conditional: 0
+    EMA_firstsignal:
+        target_construct: none
+        category_manu: none
+        question: Das ist die erste Stimmungsabfrage, die ich heute bearbeite.
+        rescaled: 0
+        conditional: 0
