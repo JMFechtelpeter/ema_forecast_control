@@ -1,0 +1,16 @@
+.DS_Store
+results*
+compressed_results
+__pycache__
+.vscode
+.venv
+eval_reallabor/lyapunov.csv
+eval_reallabor/W_matrices.pkl
+eval_reallabor/prediction_plots
+eval_reallabor/plots_for_georgia
+eval_reallabor/model_catalogues
+TODO
+lorenz_test
+*.zip*
+data
+.pytest_cache

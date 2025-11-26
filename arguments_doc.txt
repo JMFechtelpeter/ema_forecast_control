@@ -1,0 +1,110 @@
+EXPLANATIONS FOR THE ARGUMENTS DEFINED IN MAIN.PY, IN ORDER OF APPEARANCE
+
+    '--results_folder', '--experiment', '--name', '--run'
+Define the path structure where the results will be stored: 'CURRENT_DIR/results_folder/experiment/name/run'.
+If "run" is left empty, it will be an incremental three-digit number.
+
+    '--use_gpu', '--device_id'
+If true, attempt to train on GPU. Specify device_id to select a specific GPU. 
+
+    '--verbose'
+Defines verbosity. If "none", nothing is printed during training. If "log", outputs are printed into a logfile
+in saving directory. If "print", outputs will be printed to stdout, usually the console.
+
+    '--use_tb'
+Whether to use tensorboard. Warning: tensorboard files can be huge compared to the model statedicts.
+
+    '--plot_trajectories_after_training', '--plot_loss_after_training'
+Whether to plot example trajectories and/or loss components after training is completed. Plots are saved into saving directory.
+    
+    '--data_path'
+Path that leads to a csv file. Will load training and testing data from there.
+
+    '--participant'
+Can give the model a specific participant ID, will be saved in the args
+
+    '--data_features', '--input_features'
+Which columns of the CSV file to use as data features and input features
+
+    '--train_on_data_until_timestep'
+Specifies the index of the train-validation split in the CSV file. If None, the whole data will be used for training.
+
+    '--train_on_last_n_steps'
+If specified, the train set head is truncated until it has the specified length
+
+    '--load_model_path', '--resume_epoch'
+If specified, model is loaded from this path and training is resumed. If resume_epoch is specified, the model from this epoc is loaded.
+Else, the latest model is loaded.
+
+    '--dim_z'
+Latent dimension
+
+    '--dim_y'
+Hidden layer dimension
+
+    '--n_bases'
+Number of bases in case Dendritic PLRNN is used
+
+    '--clip_range'
+Hidden state will be clipped into plus minus the clip range
+
+    '--latent_model'
+Kind of latent model
+
+    '--layer_norm'
+Whether to normalize the hidden state
+
+    '--learn_z0'
+Whether to train a specific z0 model. The alternative is teacher forcing z0.
+
+    '--mean_centering', '--boxcox'
+Whether to mean center and/or Box-Cox transform the data before training starts
+
+    '--dim_x_proj'
+Dimension of the data projected into the latent space during teacher forcing. If 0, teacher forcing just copies x
+into the first couple of dimensions of z (identity TF). As a results, dim_x must be greater than or equal to dim_z.
+If >0, an additional linear observation model (without bias) is trained simultaneously that projects x into the first
+n of dimensions of z, where N=dim_x_proj (the traditional sparse TF used dim_x_proj=dim_z).
+
+    '--delay_embedding', '--delay_steps'
+NOT YET OPERATIONAL
+
+    '--tf_alpha'
+Teacher forcing alpha value. Identity TF uses tf_alpha=1.0.
+
+    '--adaptive_alpha_rate'
+If >0, teacher forcing alpha will be sigmoidally increased after a missing value in the data according to this rate.
+
+    '--batch_size', '--batches_per_epoch', '--seq_len'
+Self-explanatory
+
+    '--learning_rate'
+Learning rate of gradient descent
+
+    '--lr_annealing'
+If true, reduce learning rate when validation error reaches a plateau.
+
+    '--n_epochs'
+Number of epochs
+
+    '--gradient_clipping'
+Gradients will be clipped to range plus minus this value
+
+    '--data_augmentation'
+Defines the number of times a sequence will be repeated (with Gaussian white noise added) in each batch_size
+
+    '--model_save_step'
+If a number N, the model will be saved every N-th epoch. If "latest", the model from the last epoch will be saved.
+If "best", the best model according to validation error will be saved (works only if there is a validation set).
+
+    '--info_save_step'
+Information on loss and timing will be logged every N-th epoch.
+
+    '--validation_len'
+Number of time steps to use for the validation set (starting from the train-validation split)
+
+    '--use_reg'
+If true, use manifold attractor regularization
+
+    '--reg_ratios', '--reg_alphas', '--reg_norm'
+Manifold attractor regularization parameters
