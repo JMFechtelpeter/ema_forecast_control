@@ -1,0 +1,106 @@
+### MANDATORY DEFINITIONS ###
+# See README.md → Project Specification → Mandatory Arguments
+# Fill in the values below for your dataset and modeling setup.
+
+# Directory inside the top-level "data" folder that contains your CSV files
+# (e.g., data/AI4U_sample2). Do not include the top-level "data/" prefix here.
+data_directory: AI4U_sample2
+
+# EMA variables to be modeled (targets). Use your column names.
+obs_features:
+  - EMA_mood
+  - EMA_stress
+
+# Input (control/intervention) variables. Use your column names.
+input_features:
+  - interactive1
+  - interactive2
+
+# Timestamp configuration. Provide either absolute or relative datetime columns.
+# All keys are entries of the "timestamp" dictionary (see README.md for details):
+# - absolute_datetime_column: name of absolute datetime column (e.g., DateTime)
+# - relative_datetime_column: name of relative time column (e.g., Timerels)
+# - time_anchor: reference timestamp used for relative times
+# - datetime_format: parsing format for absolute datetimes
+# You may omit absolute_datetime_column if relative_datetime_column is provided (and vice versa).
+timestamp:
+  absolute_datetime_column: DateTime
+  relative_datetime_column: Timerels
+  time_anchor: '2022-01-01 00:00:00'
+  datetime_format: '%Y-%m-%d %H:%M:%S'
+
+# Preprocessing pipeline. Each item is an operation with its own parameters.
+# See README.md → Project Specification → Mandatory Arguments → preprocessing
+preprocessing:
+  - time_smoothing:
+      columns_to_smooth:
+        - EMA_stress
+      kernel_std_hours: 1.5
+      kernel_width_hours: 4.0
+      causal: true
+
+# Train/test split can be one of the following (see README.md for accepted types):
+# - Integer (e.g., 123): split at timepoint index
+# - String with datetime (e.g., '2025-01-01 00:00:00'): split by timestamp
+# - List of the above: multiple splits (applied per configuration)
+# - String with filename: CSV file containing split info per participant
+train_test_split: 123
+
+# Choose the model family. For this template we set PLRNN by default.
+# Valid: 'plrnn', 'transformer', 'kalman', 'var1', 'linear regression', 'mean predictor', 'last step'
+model: plrnn
+
+
+### OPTIONAL DEFINITIONS ###
+# See README.md → Project Specification → Optional Arguments
+
+# Dataset
+seq_len: 16                         # training sequence length (PLRNN/Transformer)
+partial_missings_are_valid: false   # count partially missing EMA rows as valid (not recommended)
+tolerate_reduced_seq_len: true      # if seq_len is too long for a short series, reduce automatically
+data_dropout_to_level: null         # randomly drop data until ratio of valid points remains (e.g., 0.5)
+
+# Training
+batch_size: 32
+batches_per_epoch: 0                # 0 uses all batches available
+num_epochs: 500                     # number of epochs (aka n_epochs)
+learning_rate: 0.001
+lr_annealing: true
+
+gradient_clipping: 10.0
+model_save_step: best               # 'best', 'last', or an integer epoch interval
+info_save_step: 100                 # save training info every N epochs
+
+tf_alpha: 0.125                     # PLRNN teacher-forcing parameter (BPTT)
+validation_len: 7
+validation_prewarming: 0
+early_stopping: true
+
+# PLRNN Model (representative examples)
+latent_model: clipped-shallow-PLRNN # see PLRNN.LATENT_MODELS in code for valid options
+dim_z: 20                           # latent state dimension
+dim_y: 15                           # shallow PLRNN argument
+dim_x_proj: 0                       # >0 enables a learned observation projection model
+clip_range: 10.0                    # activation clipping range
+mean_centering: true                # center data by mean before modeling
+
+
+### HYPERPARAMETER SEARCH DEFINITIONS ###
+# See README.md → Hyperparameters
+# Define independent grids under "hyperparameters" (Cartesian product is used).
+# Use "combined_hyperparameters" to specify explicit combinations.
+
+hyperparameters:
+  learning_rate:
+    - 0.001
+    - 0.0005
+  dim_z:
+    - 10
+    - 20
+
+# If you only want some combinations (not the full grid), use explicit tuples:
+combined_hyperparameters:
+  - seq_len: 16
+    num_epochs: 300
+  - seq_len: 32
+    num_epochs: 600

@@ -1,0 +1,32 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ema_forecast_control"
+version = "0.1.0"
+description = "Code Accompanying: Computational network models for forecasting and control of mental health trajectories in digital applications"
+authors = [
+    { name = "Janik Fechtelpeter" }
+]
+readme = "README.md"
+requires-python = ">=3.8"
+dependencies = [
+    "numpy~=2.3",
+    "pandas~=2.3",
+    "torch~=2.9",
+    "tqdm~=4.67",
+    "PyYAML~=6.0",
+    "matplotlib~=3.10",
+    "networkx~=3.6",
+    "nvidia-ml-py~=13.590",
+]
+
+[project.optional-dependencies]
+notebooks = [
+    "ipykernel~=7.1",
+]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["ema_forecast_control*"]
