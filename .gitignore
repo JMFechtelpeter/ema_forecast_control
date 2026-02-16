@@ -2,6 +2,7 @@
 .vscode
 __pycache__/
 *egg-info
+nul
 
 todo.txt
 
