@@ -10,7 +10,7 @@ This repository contains the code used for the analyses in the manuscript:
  
 ## Status of This Code
 
-!!! The repo history was rewritten, please reclone the repo (<git clone fresh>) !!!
+**!!! The repo history was rewritten, please reclone the repo (`git clone fresh`) !!!**
  
 This codebase is currently being prepared for public, reproducible release.  
 
