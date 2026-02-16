@@ -117,6 +117,7 @@ These arguments are model-specific or have default values that can be overridden
 
 | Argument                      | PLRNN | Transformer | Kalman Filter | Simple Models | Explanation                                                                         |
 |-------------------------------|-------|-------------|---------------|---------------|-------------------------------------------------------------------------------------|
+| `train_on_last_n_steps`       | ✓     | ✓           | ✓             | ✓             | Use only the last n steps before the train-test split for training, useful to simulate shorter time series   |
 | `seq_len`                     | ✓     | ✓           | ✗             | ✗             | Sequence length for training                                                        |
 | `partial_missings_are_valid`  | ✓     | ✓           | ✓             | ✓             | Count partially missing EMA values as valid time steps. Not recommended.            |
 | `tolerate_reduced_seq_len`    | ✓     | ✓           | ✗             | ✗             | If `seq_len` is too long for a dataset, allow reducing it automatically.            |

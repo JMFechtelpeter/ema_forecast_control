@@ -6,7 +6,8 @@ from matplotlib import RcParams
 import matplotlib as mpl
 import numpy as np
 import yaml
-import data_utils
+
+from ema_forecast_control.utils import path_utils
 
 class PlottingContext(RcParams):
     ''' Base context manager for plotting styles '''
@@ -53,7 +54,7 @@ class PaperStyle(PlottingContext):
         # General Text
         self['font.size'] = 10
         self['font.family'] = 'sans-serif'  
-        self['font.sans-serif'] = 'Inter'
+        # self['font.sans-serif'] = 'Inter'
         self['text.color'] = 'black'
         # self['text.parse_math'] = True
         self['mathtext.fontset'] = 'cm'
@@ -132,7 +133,7 @@ class colors:
     
     @classmethod
     def item_color_codes(cls, items=None, version='construct'):
-        with open(data_utils.join_ordinal_bptt_path('eval_reallabor/features.yml'), 'r') as file:
+        with open(path_utils.join_base_path('_ai4u_utils/features.yml'), 'r') as file:
             features = yaml.safe_load(file)
         color_codes = []
         if items is None:
@@ -157,7 +158,7 @@ class colors:
     
     @classmethod
     def item_cosntructs(cls, items=None, version='construct'):
-        with open(data_utils.join_ordinal_bptt_path('eval_reallabor/features.yml'), 'r') as file:
+        with open(path_utils.join_base_path('_ai4u_utils/features.yml'), 'r') as file:
             features = yaml.safe_load(file)
         if items is None:
             items = features['ema_items'].keys()

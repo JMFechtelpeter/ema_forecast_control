@@ -17,6 +17,7 @@ import ema_forecast_control.preprocessing.preprocessing as preprocessing
 import ema_forecast_control.preprocessing.prepare_timestamp as prepare_timestamp
 import ema_forecast_control.preprocessing.train_test_split as train_test_split
 from ema_forecast_control.dataset.time_series_dataset import TimeSeriesDataset
+from ema_forecast_control.utils import data_utils
 
 def get_project_dict(project: str) -> dict:
     with open(os.path.join(ROOT, f'projects/{project}.yml'), 'r') as file:
@@ -135,8 +136,10 @@ def prepare_dataset_update_args(args: dict, preloaded_data: Optional[pd.DataFram
         args['dim_s'] = train_inputs.shape[1]
     else:
         args['dim_s'] = None
+    args['participant'] = data_utils.determine_participant_id(preloaded_data)
 
     return args, train_dataset, test_data, test_inputs 
+
 
 
 def save_args(args: dict, save_path: str):

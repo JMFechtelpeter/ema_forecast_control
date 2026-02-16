@@ -1,13 +1,26 @@
 .venv
 .vscode
-*/__pycache__
+__pycache__/
 *egg-info
 
-data/*/*.csv
-*/.zip
+todo.txt
 
-logs/*
+ema_forecast_control/data/*
+!ema_forecast_control/data/__init__.py
 
-trained_models/*
+ema_forecast_control/results/*
+!ema_forecast_control/results/__init__.py
 
-preprocessing/demonstration.ipynb
+ema_forecast_control/projects/*
+!ema_forecast_control/projects/template.yml
+!ema_forecast_control/projects/test_project.yml
+
+ema_forecast_control/**/*.zip
+
+ema_forecast_control/logs/*
+
+ema_forecast_control/trained_models/*
+
+ema_forecast_control/preprocessing/demonstration.ipynb
+
+ema_forecast_control/_ai4u_utils
