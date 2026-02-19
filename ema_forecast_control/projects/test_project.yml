@@ -33,7 +33,7 @@ data_dropout_to_level: null
 
 batch_size: 32
 batches_per_epoch: 0
-num_epochs: 500
+n_epochs: 500
 learning_rate: 0.001
 lr_annealing: true
 
@@ -58,6 +58,6 @@ hyperparameters:
 
 # combined_hyperparameters:
 #   - seq_len: 16
-#     num_epochs: 1000
+#     n_epochs: 1000
 #   - seq_len: 32
-#     num_epochs: 2000
+#     n_epochs: 2000

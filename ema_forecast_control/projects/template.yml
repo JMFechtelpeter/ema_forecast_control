@@ -63,7 +63,7 @@ data_dropout_to_level: null         # randomly drop data until ratio of valid po
 # Training
 batch_size: 32
 batches_per_epoch: 0                # 0 uses all batches available
-num_epochs: 500                     # number of epochs (aka n_epochs)
+n_epochs: 500                     # number of epochs (aka n_epochs)
 learning_rate: 0.001
 lr_annealing: true
 
@@ -101,6 +101,6 @@ hyperparameters:
 # If you only want some combinations (not the full grid), use explicit tuples:
 combined_hyperparameters:
   - seq_len: 16
-    num_epochs: 300
+    n_epochs: 300
   - seq_len: 32
-    num_epochs: 600
+    n_epochs: 600
