@@ -7,7 +7,7 @@ import torch as tc
 import torch.nn as nn
 
 from ema_forecast_control.dataset.time_series_dataset import TimeSeriesDataset
-import ema_forecast_control.utils.training_utils as training_utils
+from ema_forecast_control.utils import training_utils, path_utils
 
 class PLRNN(nn.Module):
 
@@ -39,7 +39,7 @@ class PLRNN(nn.Module):
     def init_from_model_path(self, load_model_path: str, resume_epoch: Optional[int]=None, backwards_compatibility: bool=True):
         if resume_epoch is None:
             resume_epoch = training_utils.infer_latest_epoch(load_model_path)
-        self.args = training_utils.load_args(load_model_path)
+        self.args = path_utils.load_args(load_model_path)
         self.init_shapes()
         self.init_parameters()
         self.init_preprocessing()

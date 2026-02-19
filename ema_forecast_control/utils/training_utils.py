@@ -109,12 +109,12 @@ def prepare_dataset_update_args(args: dict, preloaded_data: Optional[pd.DataFram
     log.info(f"Loaded data with {train_df.shape[0]} time steps.")
 
     train_data = tc.tensor(train_df[args['obs_features']].values).float()
-    train_inputs = tc.tensor(train_df[args['input_features']].values).float()
     test_data = tc.tensor(test_df[args['obs_features']].values).float()
-    test_inputs = tc.tensor(test_df[args['input_features']].values).float()
-    
-    if train_inputs.size == 0:
-        train_inputs = None   
+    if args['input_features'] is not None:
+        train_inputs = tc.tensor(train_df[args['input_features']].values).float()
+        test_inputs = tc.tensor(test_df[args['input_features']].values).float()
+    else:
+        train_inputs = None
         test_inputs = None
     
     train_dataset = TimeSeriesDataset(train_data, train_inputs, name=os.path.basename(args['data_path']),
@@ -140,8 +140,6 @@ def prepare_dataset_update_args(args: dict, preloaded_data: Optional[pd.DataFram
 
     return args, train_dataset, test_data, test_inputs 
 
-
-
 def save_args(args: dict, save_path: str):
     txt = ''
     for k in args.keys():
@@ -153,11 +151,6 @@ def save_args(args: dict, save_path: str):
     with open(filename, 'wb') as f:
         pickle.dump(args, f)
 
-
-def load_args(model_path: str) -> dict:
-    args_path = os.path.join(model_path, 'hypers.pkl')
-    args = np.load(args_path, allow_pickle=True)
-    return args
 
 def infer_latest_epoch(run_path: str) -> int:
     chkpts = glob.glob(os.path.join(run_path, 'model_*.pt'))

@@ -8,7 +8,7 @@ import torch.nn as nn
 import pandas as pd
 
 from ema_forecast_control.dataset.time_series_dataset import TimeSeriesDataset
-from ema_forecast_control.utils import training_utils
+from ema_forecast_control.utils import path_utils
 
 import logging
 log = logging.getLogger(__name__)
@@ -51,7 +51,7 @@ class SimpleModel(nn.Module):
         self.optimized = False
 
     def init_from_model_path(self, model_path, *args, **kwargs):
-        self.args = training_utils.load_args(model_path)
+        self.args = path_utils.load_args(model_path)
         self.params = tc.load(os.path.join(model_path, 'model.pt'))
 
     def fit(self, *args, **kwargs):

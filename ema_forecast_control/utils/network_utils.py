@@ -1,6 +1,8 @@
 from typing import Optional
 
 import torch as tc
+import numpy as np
+import pandas as pd
 from scipy import stats, linalg
 import matplotlib.pyplot as plt
 
@@ -192,3 +194,31 @@ def impulse_response(model: PLRNN|KalmanFilter|VAR1|AutoregressiveTransformer, u
     if cumulative:
         ir = tc.sum(ir, dim=-2)
     return ir
+
+
+def get_proximal_effects(data: pd.DataFrame, obs_features: list, input_features: list,
+                         from_timestep: Optional[int]=None, until_timestep: Optional[int]=None,
+                         sum_over_emas: bool=True, binned_policy: str='ignore'):
+    
+    if binned_policy == 'ignore':
+        data.loc[data['Form'] == 'binned', obs_features] = np.nan
+    elif binned_policy == 'drop':
+        data = data.loc[data['Form'] != 'binned']
+    diff = data.set_index(['Participant'], append=True)
+    diff = data[obs_features].diff().shift(-1)
+    diff[input_features] = data[input_features]
+    diff = diff.dropna()
+    diff = diff.loc[diff[input_features].sum(axis=1)>0]
+    if from_timestep is not None:
+        diff = diff.loc[from_timestep:]
+    if until_timestep is not None:
+        diff = diff.loc[:until_timestep]
+    input_occurrence = diff[input_features].sum().astype(int)
+    input_occurrence[input_occurrence==0] = 1
+    # Get the sum of effects of each intervention on each EMA
+    sum_effects = diff[obs_features].T.dot(diff[input_features])
+    # Normalize them by the number of intervention presentations
+    sum_effects = sum_effects.div(input_occurrence)
+    if sum_over_emas:
+        sum_effects = sum_effects.mean()
+    return sum_effects, input_occurrence
