@@ -3,9 +3,7 @@ import os
 import torch as tc
 import pandas as pd
 
-import ema_forecast_control.utils.training_utils as training_utils
-import ema_forecast_control.utils.path_utils as path_utils
-import ema_forecast_control.utils.logging_utils as logging_utils
+from ema_forecast_control.utils import training_utils, path_utils, logging_utils, check_args
 from ema_forecast_control.simple_models.simple_models import get_class
 
 tc.set_num_threads(1)
@@ -65,6 +63,7 @@ def get_default_args():
 def train_simple_model(args: dict):
 
     args = {**get_default_args(), **args}
+    args = check_args.check_args(args)
 
     save_path = training_utils.create_model_dir(args['project_name'], args['configuration_name'], args['run'], args['overwrite'])
     log = logging_utils.configure_logging(save_path, args['verbose'])

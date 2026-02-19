@@ -5,7 +5,7 @@ import torch as tc
 import torch.nn as nn
 import math
 
-from ema_forecast_control.utils import training_utils
+from ema_forecast_control.utils import path_utils
 
 class AutoregressiveTransformer(nn.Module):
 
@@ -28,7 +28,7 @@ class AutoregressiveTransformer(nn.Module):
 
     def init_from_model_path(self, load_model_path: str, resume_epoch: Optional[int]=None):
         # load argumentsn_steps_ahead_pred_mse
-        self.args = training_utils.load_args(load_model_path)
+        self.args = path_utils.load_args(load_model_path)
         # init using arguments
         self.init_submodules()
         # restore model parameters

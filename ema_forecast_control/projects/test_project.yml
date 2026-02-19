@@ -4,9 +4,7 @@ data_directory: AI4U_sample2
 obs_features:
   - EMA_mood
   - EMA_stress
-input_features:
-  - interactive1
-  - interactive2
+input_features: []
 timestamp:
   absolute_datetime_column: DateTime
   relative_datetime_column: Timerels

@@ -1,9 +1,7 @@
 import argparse
 import torch as tc
 
-import ema_forecast_control.utils.training_utils as training_utils
-import ema_forecast_control.utils.path_utils as path_utils
-import ema_forecast_control.utils.logging_utils as logging_utils
+from ema_forecast_control.utils import training_utils, path_utils, logging_utils, check_args
 from ema_forecast_control.plrnn.bptt_algorithm import BPTT
 from ema_forecast_control.plrnn.plrnn_model import PLRNN
 
@@ -92,6 +90,7 @@ def get_default_args():
 def train_plrnn(args: dict) -> str:
 
     args = {**get_default_args(), **args}
+    args = check_args.check_args(args)
 
     save_path = training_utils.create_model_dir(args['project_name'], args['configuration_name'], args['run'], args['overwrite'])
     log = logging_utils.configure_logging(save_path, args['verbose'])

@@ -103,7 +103,7 @@ These arguments must be defined in every project file:
 |------------------------------------------|-----------------------------------------------------------------------------------------------------------------|
 | `data_directory`                         | Directory containing the data files. Must be a sub-directory of "data".                                         |
 | `obs_features`                           | List of observation features (EMA items) to be modeled                                                          |
-| `input_features`                         | List of input features (control/intervention variables)                                                         |
+| `input_features`                         | List of input features (control/intervention variables). Empty list or `null` if not applicable.                |
 | `timestamp`                              | Timestamp configuration dictionary with the following entries:                                                  |
 | `└─ absolute_datetime_column`            | Column name containing absolute datetime values (e.g., 'DateTime') (optional if `relative_datetime_column` is given)                                             |                                            |
 | `└─ relative_datetime_column`            | Column name containing relative datetime values (e.g., 'Timerels') (optional if `absolute_datetime_column` is given)                                             |
@@ -180,6 +180,26 @@ combined_hyperparameters
   dim_z: 20
 ``` 
 will result in exactly these 2 model configurations. Again, all other arguments will stay the same.Note that each hyperparameter combinations is defined by a single `-`. In YAML terms, *combined_hyperparameters* is a list of dictionaries.
+
+
+### Project specification
+
+Update pending.
+
+### Model batch training
+
+Update pending.
+Models will be saved in the directory `trained_models/<project_name>`, where `project_name` is the name of the specified project yml file. For each model, a subdirectory is created. The name of the subdirectory is formed by the hyperparameter specification of that model. 
+
+If this directory already exists, you will be propted "Model path `<project_name>` already exists. Delete/Overwrite/Update/Abort". Here's what the options mean in detail:
+* Delete: delete the whole `<project_name>` directory and create a new one.
+* Overwrite: write into the existing directory, overwriting any existing subdirectories if a new model with the same hyperparameter configuration is trained.
+* Update: write into the existing directory, not touching any existing subdirectories. The respective hyperparameter configurations are ignored during training.
+* Abort: don't train anything.
+
+### Model analysis
+
+Update pending.
 
 ---
 

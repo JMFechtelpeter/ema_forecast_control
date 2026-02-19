@@ -7,7 +7,7 @@ import pandas as pd
 
 from ema_forecast_control.dataset.time_series_dataset import TimeSeriesDataset
 from ema_forecast_control.kalman_filter.em_algorithm import stable_EM_algorithm, EM_Error
-from ema_forecast_control.utils import training_utils
+from ema_forecast_control.utils import path_utils
 
 import logging
 log = logging.getLogger(__name__)
@@ -30,7 +30,7 @@ class KalmanFilter(tc.nn.Module):
         self.optimized = False
 
     def init_from_model_path(self, model_path: str, *args, **kwargs):
-        self.args = training_utils.load_args(model_path)
+        self.args = path_utils.load_args(model_path)
         self.params = tc.load(os.path.join(model_path, 'model.pt'))
 
     def save(self, model_path: str):
