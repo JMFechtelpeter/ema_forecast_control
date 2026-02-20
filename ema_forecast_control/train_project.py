@@ -10,7 +10,7 @@ import ema_forecast_control.utils.multitasking_utils as multitasking_utils
 import ema_forecast_control.utils.training_utils as training_utils
 
 def train_project(project_name: str, n_runs: int=1, include_participants: Optional[list]=None,
-                  n_processes: int=1, n_proc_per_gpu: int=1, verbose: str='print', wait: int=10):
+                  n_processes: int=1, use_gpu: int=0, n_proc_per_gpu: int=1, verbose: str='print', wait: int=10):
     
     experiment_path = os.path.join(ROOT, 'trained_models', project_name)
     if os.path.exists(experiment_path):
@@ -45,8 +45,9 @@ def get_args() -> dict:
     parser.add_argument('--n_runs', type=int, default=1)
     parser.add_argument('--include_participants', type=int, nargs='+', default=[12])
     parser.add_argument('--n_processes', type=int, default=1)
+    parser.add_argument('--use_gpu', type=int, default=0)
     parser.add_argument('--n_proc_per_gpu', type=int, default=1)
-    parser.add_argument('--verbose', type=str, choices=['none','print','log'], default='none')
+    parser.add_argument('--verbose', type=str, choices=['none','print','log'], default='print')
     parser.add_argument('--wait', type=int, default=1)
 
     args = vars(parser.parse_args())
@@ -59,4 +60,4 @@ if __name__ == '__main__':
     args = get_args()
     
     train_project(args['project_name'], n_runs=args['n_runs'], include_participants=args['include_participants'],
-                    n_processes=args['n_processes'], n_proc_per_gpu=args['n_proc_per_gpu'], verbose=args['verbose'], wait=args['wait'])
+                    n_processes=args['n_processes'], use_gpu=args['use_gpu'], n_proc_per_gpu=args['n_proc_per_gpu'], verbose=args['verbose'], wait=args['wait'])

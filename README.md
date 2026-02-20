@@ -182,13 +182,33 @@ combined_hyperparameters
 will result in exactly these 2 model configurations. Again, all other arguments will stay the same.Note that each hyperparameter combinations is defined by a single `-`. In YAML terms, *combined_hyperparameters* is a list of dictionaries.
 
 
-### Project specification
-
-Update pending.
-
 ### Model batch training
 
-Update pending.
+Usually, you will want to train a batch of models on a dataset consisting of several participants. Hence, let's assume that your data directory `data/example` contains $n$ csv files, one per participant. Let's also assume that your project yml file is called `example_project.yml` and in it, the data_directory is specified as `example`.
+
+#### Usage of `train_project.py`
+
+The script `train_project.py` contained in the root directory trains one or more models on all or a subset of the participants in your data directory. The basic usage is
+```
+python train_project.py example_project
+```
+This will train one model per participant and hyperparameter configuration (hyperparameter configurations are derived from your project yml file).
+
+You can specify the batch settings via the following optional arguments:
+* `--n_runs`: number of models trained per participant. Default: 1
+* `--include_participants`: list of participants to include in training; if 'none', includes all participants. Default: 'none'
+* `--n_processes`: total number of parallel processes to spawn. Default: 1
+* `--use_gpu`: if 0, train on CPU. If nonzero, train on GPUs if possible. Default: 0
+* `--n_proc_per_gpu`: maximum number of processes spawned on one GPU. If this number times the number of available GPUs is lower than n_processes, n_processes is reduced automatically. Default: 1
+* `--verbose`: logging behavior, options: `none`, `print`, and `log`. If `none`, training generates no logs. If `print`, outputs are passed to stdout (usually the console). If `log`, they are saved in a log file in the logs directory. Default: 'print' 
+* `--wait`: seconds to wait until training starts. This serves the purpose of allowing for an emergency stop by pressing ctrl+C. Default: 10
+
+#### Training device
+
+Training can be perfomed on the CPU or Nvidia GPUs, if the appropriate CUDA version is installed on the system. Tasks are automatically assigned to the GPU with the lowest current load. The fallback is always CPU. 
+
+#### In case the model directory already exists
+
 Models will be saved in the directory `trained_models/<project_name>`, where `project_name` is the name of the specified project yml file. For each model, a subdirectory is created. The name of the subdirectory is formed by the hyperparameter specification of that model. 
 
 If this directory already exists, you will be propted "Model path `<project_name>` already exists. Delete/Overwrite/Update/Abort". Here's what the options mean in detail:
