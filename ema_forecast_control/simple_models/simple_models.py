@@ -14,18 +14,18 @@ import logging
 log = logging.getLogger(__name__)
 
 def get_class(name: str):
-    if name=='MeanPredictor':
+    if name.lower()=='meanpredictor':
         model = MeanPredictor
-    elif name=='InputsRegression':
+    elif name.lower()=='inputsregression':
         model = InputsRegression
-    elif name.startswith('MovingAverage'):
-        match = re.match(r'MovingAverage\(([0-9]+)\)', name)
+    elif name.lower().startswith('movingaverage'):
+        match = re.match(r'movingaverage\(([0-9]+)\)', name.lower())
         if match is not None:
             p = match.group(1)
         else:
             raise NotImplementedError(name)
         model = MovingAverage(int(p))
-    elif name=='VAR1':
+    elif name.lower()=='var1':
         model = VAR1
     else:
         raise NotImplementedError(name)

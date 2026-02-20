@@ -20,7 +20,7 @@ def select_trainer_function(model_type: str):
         return train_plrnn
     elif model_type.upper() == 'TRANSFORMER':
         return train_transformer
-    elif model_type.upper() == 'KALMAN FILTER':
+    elif model_type.upper() == 'KALMANFILTER':
         return train_kalman_filter
     else:
         return train_simple_model

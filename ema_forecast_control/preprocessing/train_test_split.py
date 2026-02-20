@@ -4,7 +4,7 @@ import pandas as pd
 import logging
 log = logging.getLogger(__name__)
 
-def train_test_split(df: pd.DataFrame, split_arg: Optional[int|pd.Timestamp]) -> tuple[pd.DataFrame, pd.DataFrame]:
+def train_test_split(df: pd.DataFrame, split_arg: Optional[int|str|pd.Timestamp]) -> tuple[pd.DataFrame, pd.DataFrame]:
     ''' The train and test set overlap in 1 data point. It used as ground truth during 
         training and for initialization during testing. '''
     
@@ -18,6 +18,9 @@ def train_test_split(df: pd.DataFrame, split_arg: Optional[int|pd.Timestamp]) ->
     
     if split_arg is None:
         return df.iloc[:], df.iloc[0:0]
+    
+    if isinstance(split_arg, str):
+        split_arg = pd.to_datetime(split_arg)
     
     if isinstance(split_arg, pd.Timestamp):
         test_index = determine_index_from_timestamp(df, split_arg)
