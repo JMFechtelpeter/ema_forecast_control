@@ -102,10 +102,12 @@ def append_to_config_name(config_name, arg_name, arg_value):
 def filter_participants(data_files: list[str], participants: Optional[list]) -> list:
     filtered_data_files = []
     used_participants = []
+    if participants is not None:
+        participants = [str(p) for p in participants]
     for file in data_files:        
         participant = data_utils.determine_participant_id(data_path=file)
         if participants is not None:
-            if participant in participants or int(participant) in participants:
+            if participant in participants:
                 filtered_data_files.append(file)
                 used_participants.append(participant)
         else:

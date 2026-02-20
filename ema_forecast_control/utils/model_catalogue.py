@@ -24,7 +24,7 @@ class ModelCatalogue:
                 args = path_utils.load_args(d)
                 props = pd.DataFrame(index=[0])
                 props['model_dir'] = d
-                props['participant'] = int(float(args['participant']))
+                props['participant'] = str(args['participant'])
                 props['model_timestep'] = int(float(args['train_on_data_until_timestep']))
                 props['model_datetime'] = 'NotImplemented'
                 props['train_on_last_n_steps'] = args['train_on_last_n_steps']
@@ -71,12 +71,12 @@ class ModelCatalogue:
                 filtered_dirs.append(d)
         return filtered_dirs
 
-    def get_all_model_dirs(self, participant: int):
+    def get_all_model_dirs(self, participant: str):
         models = self.catalogue[self.catalogue['participant']==participant].sort_values('model_timestep')
         choose_dirs = models['model_dir'].to_list()
         return choose_dirs
 
-    def get_latest_model_dirs(self, participant: int, timestep: int|None=None, datetime: int|None=None) -> list[str]:
+    def get_latest_model_dirs(self, participant: str, timestep: int|None=None, datetime: int|None=None) -> list[str]:
         if datetime is not None:
             raise NotImplementedError('Choose model dir by datetime')
         if timestep is None:
@@ -90,7 +90,7 @@ class ModelCatalogue:
             choose_dirs = []
         return choose_dirs
     
-    def get_best_latest_model_dir(self, participant: int, timestep: int|None=None, datetime: int|None=None):
+    def get_best_latest_model_dir(self, participant: str, timestep: int|None=None, datetime: int|None=None):
         model_dirs = self.get_latest_model_dirs(participant, timestep, datetime)
         if len(model_dirs) > 0:
             if len(model_dirs)>1:
@@ -107,7 +107,7 @@ class ModelCatalogue:
             model_dir = None
         return model_dir
 
-    def get_best_model_dirs(self, participant: int):
+    def get_best_model_dirs(self, participant: str):
         models = self.catalogue.loc[self.catalogue['participant']==participant].sort_values('model_timestep')
         dirs = []
         for timestep in models['model_timestep'].unique():

@@ -32,8 +32,8 @@ def determine_participant_id(df: Optional[pd.DataFrame]=None, data_path: Optiona
     if df is None and data_path is not None:
         df = pd.read_csv(data_path)
     if 'participant' in df.columns:
-        return int(df['participant'].iloc[0].item())
+        return str(df['participant'].iloc[0].item())
     elif 'Participant' in df.columns:
-        return int(df['Participant'].iloc[0].item())
+        return str(df['Participant'].iloc[0].item())
     else:
         raise ValueError('No participant column found in the data.')

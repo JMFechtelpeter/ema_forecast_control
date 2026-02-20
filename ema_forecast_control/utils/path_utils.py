@@ -37,8 +37,8 @@ def read_data_files(dataset_subpath: str) -> list[pd.DataFrame]:
     ''' Reads all CSV data files within a specified dataset subpath and returns them as a list of DataFrames, sorted by participant ID. '''
     data_files = glob.glob(os.path.join(ROOT, 'data', dataset_subpath, f'*.csv'))
     data = [pd.read_csv(file) for file in data_files]
-    participants = np.array([data_utils.determine_participant_id(df=df) for df in data])
-    order = participants.argsort()
+    participants = [data_utils.determine_participant_id(df=df) for df in data]
+    order = np.argsort(participants)
     data = [data[i] for i in order]
     return data
 
@@ -46,8 +46,8 @@ def zip_participants_data(dataset_subpath: str) -> list[str]:
     ''' Reads all CSV data files within a specified dataset subpath and returns them as a list of DataFrames, sorted by participant ID. '''
     data_files = glob.glob(os.path.join(ROOT, 'data', dataset_subpath, f'*.csv'))
     data = [pd.read_csv(file) for file in data_files]
-    participants = np.array([data_utils.determine_participant_id(df=df) for df in data])
-    order = participants.argsort()
+    participants = [data_utils.determine_participant_id(df=df) for df in data]
+    order = np.argsort(participants)
     participants = [participants[i] for i in order]
     data = [data[i] for i in order]
     return zip(participants, data)
