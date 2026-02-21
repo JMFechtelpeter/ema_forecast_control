@@ -12,7 +12,7 @@ This repository contains the code used for the analyses in the manuscript:
 
 **!!! The repo history was rewritten, please reclone the repo (`git clone fresh`) !!!**
  
-This codebase is currently being prepared for public, reproducible release.  
+This codebase is currently being prepared for public, reproducible release.
 
 At this stage, the **main** branch is **not** intended to be run “out of the box” by external users. Check out the **refactoring** channel for the current status of adapting the code.
 
@@ -50,6 +50,8 @@ The **refactoring** branch already contains code that can be used to train model
 2. Make sure Python (Version 3.9 or greater) is installed.
 3. Open a terminal (*PowerShell* on windows) and navigate to the folder containing the package.
 4. Enter `python3 -m pip install -e ema_forecast_control`. Note that the `-e` flag makes it possible to make changes to the code after it's already been installed.
+
+**Note**: If you don't plan to use GPUs, you don't need Pytorch with GPU/CUDA support, which is installed by default. To save time and space, you can avoid that by installing the CPU-only version of Pytorch (version >= 2.9) manually **before** installing ema_forecast_control (step 4).
 
 ---
 
