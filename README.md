@@ -59,8 +59,8 @@ The **refactoring** branch already contains code that can be used to train model
 
 ### Quick Model Batch Training
 
-1. Define a new project: In the *projects* folder, create a `[project name].yml` file that specifies all parameters for your model training. See below (section **Project Specification**) or the ``template.yml`` file for details on how to do that.
-2. Run `python3 train_project.py [project name]` to start training. See below (section **Model Batch Training**) for further details.
+1. Define a new project: In the *projects* folder, create a `<project name>.yml` file that specifies all parameters for your model training. See below (section **Project Specification**) or the ``template.yml`` file for details on how to do that.
+2. Run `python3 train_project.py <project name>` to start training. See below (section **Model Batch Training**) for further details.
 3. The trained models appear in the *trained_models* folder, in the subfolder with the same name as your project. 
 
 ### Quick Model Analysis
@@ -72,11 +72,13 @@ The **refactoring** branch already contains code that can be used to train model
 ### Data Requirements
 
 Data files must be stored in sub-folders of "data". Data must be in .csv format with the following format conventions:
+
 * Each row = one timestep, chronologically ordered
 * First row = column headers
 * Order of columns is irrelevant
 
 The files must contain the following columns:
+
 * an absolute or relative time column. If absolute, it must contain date and time information, e.g. in YYYY-MM-DD hh-mm-ss format. If relative, it must contain a seconds counter relative to an anchor time.
 * a *participant* column containing the participant id (must be the same in all rows)
 * one column per EMA item
@@ -113,14 +115,14 @@ These arguments must be defined in every project file:
 | `└─ datetime_format`                     | Format string for parsing datetime (e.g., '%Y-%m-%d %H:%M:%S').                                                  |
 | `preprocessing`                          | List of preprocessing operations to apply (e.g., time_smoothing with parameters). Declare each operation as a sub-entry. In turn, declare function arguments as sub-entries to this operation.                                |
 | `train_test_split`                       | Split point for training/test data. Can be:<br>• Integer: timepoint index<br>• String: datetime value<br>• List of the above: each value will be applied to each model configuration<br>• String: filename containing split information by participant |
-| `model`                                  | Model type to use: 'plrnn', 'transformer', 'kalman filter', 'var1', 'linear regression', 'mean predictor', or 'last step'.                              |
+| `model`                                  | Model type to use: 'PLRNN', 'Transformer', 'KalmanFilter', 'VAR1', 'LinearRegression', 'MeanPredictor', or 'MovingAverage(n)' where n is the window size.                              |
 
 #### Optional Arguments
 
 These arguments are model-specific or have default values that can be overridden:
 
 | Argument                      | PLRNN | Transformer | Kalman Filter | Simple Models | Explanation                                                                         |
-|-------------------------------|-------|-------------|---------------|---------------|-------------------------------------------------------------------------------------|
+|:------------------------------|:------|:------------|:--------------|:--------------|:------------------------------------------------------------------------------------|
 | `train_on_last_n_steps`       | ✓     | ✓           | ✓             | ✓             | Use only the last n steps before the train-test split for training, useful to simulate shorter time series   |
 | `seq_len`                     | ✓     | ✓           | ✗             | ✗             | Sequence length for training                                                        |
 | `partial_missings_are_valid`  | ✓     | ✓           | ✓             | ✓             | Count partially missing EMA values as valid time steps. Not recommended.            |
@@ -186,7 +188,7 @@ will result in exactly these 2 model configurations. Again, all other arguments 
 
 ### Model batch training
 
-Usually, you will want to train a batch of models on a dataset consisting of several participants. Hence, let's assume that your data directory `data/example` contains $n$ csv files, one per participant. Let's also assume that your project yml file is called `example_project.yml` and in it, the data_directory is specified as `example`.
+Usually, you will want to train a batch of models on a dataset consisting of several participants. Hence, let's assume that your data directory `data/example` contains n csv files, one per participant. Let's also assume that your project yml file is called `example_project.yml` and in it, the data_directory is specified as `example`.
 
 #### Usage of `train_project.py`
 
@@ -197,13 +199,16 @@ python train_project.py example_project
 This will train one model per participant and hyperparameter configuration (hyperparameter configurations are derived from your project yml file).
 
 You can specify the batch settings via the following optional arguments:
-* `--n_runs`: number of models trained per participant. Default: 1
-* `--include_participants`: list of participants to include in training; if 'none', includes all participants. Default: 'none'
-* `--n_processes`: total number of parallel processes to spawn. Default: 1
-* `--use_gpu`: if 0, train on CPU. If nonzero, train on GPUs if possible. Default: 0
-* `--n_proc_per_gpu`: maximum number of processes spawned on one GPU. If this number times the number of available GPUs is lower than n_processes, n_processes is reduced automatically. Default: 1
-* `--verbose`: logging behavior, options: `none`, `print`, and `log`. If `none`, training generates no logs. If `print`, outputs are passed to stdout (usually the console). If `log`, they are saved in a log file in the logs directory. Default: 'print' 
-* `--wait`: seconds to wait until training starts. This serves the purpose of allowing for an emergency stop by pressing ctrl+C. Default: 10
+
+| Flag | Explanation |
+| :--- | :--- |
+| `--n_runs` | Number of models trained per participant. Default: 1 |
+| `--include_participants` | List of participants to include in training; if 'none', includes all participants. Default: 'none' |
+| `--n_processes` | Total number of parallel processes to spawn. Default: 1 |
+| `--use_gpu` | If 0, train on CPU. If nonzero, train on GPUs if possible. Default: 0 |
+| `--n_proc_per_gpu` | Maximum number of processes spawned on one GPU. If this number times the number of available GPUs is lower than n_processes, n_processes is reduced automatically. Default: 1 |
+| `--verbose` | Logging behavior, options: `none`, `print`, and `log`. If `none`, training generates no logs. If `print`, outputs are passed to stdout (usually the console). If `log`, they are saved in a log file in the logs directory. Default: 'print' |
+| `--wait` | Seconds to wait until training starts. This serves the purpose of allowing for an emergency stop by pressing ctrl+C. Default: 10 |
 
 #### Training device
 
@@ -214,6 +219,7 @@ Training can be perfomed on the CPU or Nvidia GPUs, if the appropriate CUDA vers
 Models will be saved in the directory `trained_models/<project_name>`, where `project_name` is the name of the specified project yml file. For each model, a subdirectory is created. The name of the subdirectory is formed by the hyperparameter specification of that model. 
 
 If this directory already exists, you will be propted "Model path `<project_name>` already exists. Delete/Overwrite/Update/Abort". Here's what the options mean in detail:
+
 * Delete: delete the whole `<project_name>` directory and create a new one.
 * Overwrite: write into the existing directory, overwriting any existing subdirectories if a new model with the same hyperparameter configuration is trained.
 * Update: write into the existing directory, not touching any existing subdirectories. The respective hyperparameter configurations are ignored during training.
