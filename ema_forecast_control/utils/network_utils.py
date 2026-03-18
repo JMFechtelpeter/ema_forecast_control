@@ -63,7 +63,6 @@ def plot_network_graph(networks: tc.Tensor, directed: bool=True, inverted_items:
         else:
             print('No counterintuitive connections found.')
         
-
     if ax is None:
         fig, ax = plt.subplots(1, 1, figsize=(6.27, 6.27))
     ax.spines[['left', 'right', 'top', 'bottom']].set_visible(False)
@@ -77,6 +76,63 @@ def plot_network_graph(networks: tc.Tensor, directed: bool=True, inverted_items:
         ax.set_title(title)
     plt.tight_layout()
     return ax, sig_adj
+
+
+def plot_individual_network_graph(network: tc.Tensor, directed: bool=True, inverted_items: list=[], hide_self_connections: bool=True,
+                       edge_threshold: Optional[float]=None, max_edge_number: Optional[int]=None,
+                       node_labels: Optional[list]=None, title: Optional[str]=None, ax: Optional[plt.Axes]=None,
+                       reveal_counterintuitive_connections: bool=True):    
+
+    if hide_self_connections:
+        for i in range(network.shape[0]):
+            network[i,i] = 0
+    max_abs = network.abs().max()
+    if len(inverted_items)>0:
+        network[inverted_items, :] *= -1
+        network[:, inverted_items] *= -1
+        if node_labels is not None:
+            node_labels = [node_labels[i] + '*' if i in inverted_items else node_labels[i] for i in range(len(node_labels)) ]
+    if edge_threshold is not None:
+        network = network * (network.abs() > edge_threshold)
+    if max_edge_number is not None:
+        flat_network = network.abs().flatten()
+        threshold_value = tc.topk(flat_network, k=max_edge_number).values[-1]
+        network = network * (network.abs() >= threshold_value)
+
+    network_pos = network * (network > 0)
+    network_neg = network * (network < 0)
+    max_pos = network_pos.abs().max()
+    max_neg = network_neg.abs().max()
+
+    if reveal_counterintuitive_connections:
+        if len(inverted_items) > 0:
+            expected_sign = tc.ones_like(network)
+            non_inverted_items = [i for i in range(network.shape[0]) if i not in inverted_items]
+            expected_sign[tc.tensor(inverted_items)[:, None], tc.tensor(non_inverted_items)[None, :]] *= -1
+            expected_sign[tc.tensor(non_inverted_items)[:, None], tc.tensor(inverted_items)[None, :]] *= -1
+        else:
+            expected_sign = tc.ones_like(network)
+        counterintuitive_connections = ((network * expected_sign) < 0).nonzero()
+        if len(counterintuitive_connections) > 0:
+            print('Counterintuitive connections found between the following items:')
+            for i in range(counterintuitive_connections.shape[0]):
+                print(f'  {node_labels[counterintuitive_connections[i, 0]]} --> {node_labels[counterintuitive_connections[i, 1]]}')
+        else:
+            print('No counterintuitive connections found.')
+        
+    if ax is None:
+        fig, ax = plt.subplots(1, 1, figsize=(6.27, 6.27))
+    ax.spines[['left', 'right', 'top', 'bottom']].set_visible(False)
+    node_color = 'grey'#
+    plot_circular_graph(network_pos, directed=directed, labels=node_labels, ax=ax, max_edge_width=max_pos/max_abs * 3, labelpad=5,
+                            edge_kwargs={'edge_color':'k'}, node_kwargs={'node_color':node_color})
+    plot_circular_graph(-network_neg, directed=directed, labels=node_labels, ax=ax, max_edge_width=max_neg/max_abs * 3, labelpad=5,
+                            edge_kwargs={'edge_color':'red'}, node_kwargs={'node_color':node_color})
+    ax.set(xlim=(-2,2), ylim=(-2,2))
+    if title is not None:
+        ax.set_title(title)
+    plt.tight_layout()
+    return ax
 
 
 def get_network_matrix(model: PLRNN|KalmanFilter|VAR1, x: Optional[tc.Tensor]=None, Gamma: Optional[tc.Tensor]=None, B: Optional[tc.Tensor]=None):

@@ -50,6 +50,7 @@ class ModelCatalogue:
         catalogue_path = path_utils.join_base_path(self.main_dir, 'model_catalogues', hypers_hash, 'model_catalogue.csv')
         if os.path.exists(catalogue_path):
             self.catalogue = pd.read_csv(catalogue_path, index_col=0)
+            self.catalogue['participant'] = self.catalogue['participant'].astype('str')
             return True
         else:
             return False

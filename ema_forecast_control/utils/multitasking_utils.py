@@ -210,9 +210,9 @@ def prepare_configuration_batch(project_dict: dict):
     assign_gpus = check_need_to_assign_gpus(project_dict)
     configs, n_jobs = create_batch_configs(project_dict)
     if assign_gpus:
-        configs, n_workers = assign_gpus_to_tasks(configs, project_dict.get('n_proc_per_gpu', 1), project_dict.get('n_workers', 1))
+        configs, n_workers = assign_gpus_to_tasks(configs, project_dict.get('n_proc_per_gpu', 1), project_dict.get('n_processes', 1))
     else:
-        n_workers = project_dict.get('n_workers', 1)
+        n_workers = project_dict.get('n_processes', 1)
     return configs, n_workers
 
 

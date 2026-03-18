@@ -17,7 +17,7 @@ preprocessing:
       kernel_std_hours: 1.5
       kernel_width_hours: 4.0
       causal: true
-train_test_split: 123
+train_test_split: [100, 110, 120]
 model: plrnn
 
 ### OPTIONAL DEFINITIONS ###
@@ -52,9 +52,9 @@ hyperparameters:
   learning_rate:
     - 0.001
     - 0.0005
-  batch_size:
-    - 16
-    - 32
+  # batch_size:
+  #   - 16
+  #   - 32
 
 # combined_hyperparameters:
 #   - seq_len: 16
