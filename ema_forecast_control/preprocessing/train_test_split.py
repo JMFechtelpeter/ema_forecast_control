@@ -17,6 +17,7 @@ def train_test_split(df: pd.DataFrame, split_arg: Optional[int|str|pd.Timestamp]
         return test_index
     
     if split_arg is None:
+        log.info(f'No test set.')
         return df.iloc[:], df.iloc[0:0]
     
     if isinstance(split_arg, str):
@@ -28,6 +29,8 @@ def train_test_split(df: pd.DataFrame, split_arg: Optional[int|str|pd.Timestamp]
         test_index = split_arg
 
     if isinstance(test_index, int):
+        if test_index==-1:
+            test_index = len(df)-1
         df_test = df.iloc[test_index:]
         df_train = df.iloc[:test_index+1]
         log.info(f'Test index determined at position {test_index}')

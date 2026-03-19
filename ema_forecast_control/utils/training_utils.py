@@ -138,6 +138,9 @@ def prepare_dataset_update_args(args: dict, preloaded_data: Optional[pd.DataFram
         args['dim_s'] = None
     args['participant'] = data_utils.determine_participant_id(preloaded_data)
 
+    if len(test_data)==0:
+        test_data, test_inputs = None, None
+
     return args, train_dataset, test_data, test_inputs 
 
 def save_args(args: dict, save_path: str):

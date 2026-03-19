@@ -67,11 +67,13 @@ def check_train_test_split(args: dict) -> dict:
         valid = check_string_is_date(args['train_test_split']) or os.path.isfile(args['train_test_split'])
     elif isinstance(args['train_test_split'], int):
         valid = True
+    elif args['train_test_split'] is None:
+        valid = True
     else:
         valid = False
     if not valid:
         raise ValueError('In project yml file, train_test_split must be one of the following:'
-                         ' A path to a file, an integer, a date string, a list of integers or a list of date strings.')
+                         ' None, a path to a file, an integer, a date string, a list of integers or a list of date strings.')
     return args
 
 def check_model(args: dict) -> dict:
