@@ -25,7 +25,7 @@ class ModelCatalogue:
                 props = pd.DataFrame(index=[0])
                 props['model_dir'] = d
                 props['participant'] = str(args['participant'])
-                props['model_timestep'] = int(float(args['train_on_data_until_timestep']))
+                props['model_timestep'] = int(float(args['train_test_split']))
                 props['model_datetime'] = 'NotImplemented'
                 props['train_on_last_n_steps'] = args['train_on_last_n_steps']
                 return props

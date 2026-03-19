@@ -5,7 +5,7 @@ import numpy as np
 import pandas as pd
 
 from ema_forecast_control import ROOT
-from ema_forecast_control.utils import data_utils
+from ema_forecast_control.utils import data_utils, backwards_compatibility
 
 def model_batch_path(project_name: str) -> str:
     ''' Returns the path to the model batch folder for a given project name. '''
@@ -56,6 +56,7 @@ def load_args(model_path: str) -> dict:
     ''' Loads training arguments from a specified model path. '''
     args_path = os.path.join(model_path, 'hypers.pkl')
     args = np.load(args_path, allow_pickle=True)
+    args = backwards_compatibility.treat_legacy_args(args)
     # args = complement_args(args)
     return args
 

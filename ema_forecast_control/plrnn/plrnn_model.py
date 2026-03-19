@@ -302,6 +302,14 @@ class PLRNN(nn.Module):
     
     def get_parameters(self):
         return self.parameters_
+
+    def get_observation_model(self):
+        if self.parameters_['B'] is not None:
+            return self.parameters_['B']
+        else:
+            free_states = self.args['dim_z'] - self.args['dim_x']
+            B = tc.cat((tc.eye(self.args['dim_x']), tc.zeros((self.args['dim_x'], free_states))), dim=1)
+            return B
     
     def init_shapes(self):
         self.shapes = dict()

@@ -148,7 +148,7 @@ def get_network_matrix(model: PLRNN|KalmanFilter|VAR1, x: Optional[tc.Tensor]=No
             if model.args['mean_centering']:
                 x = x - model.data_mean
             if B is None:
-                B = model.get_parameters()['B']
+                B = model.get_observation_model()
             z = tc.einsum('lo,bo->bl', B_inv, x)
             if 0 < model.args['dim_x_proj'] < model.args['dim_z']:
                 z = tc.cat((z, tc.zeros((z.shape[0], model.args['dim_z']-z.shape[1]))), dim=1)
@@ -187,7 +187,7 @@ def get_recognition_matrix(model: PLRNN|KalmanFilter|tc.nn.Module, Gamma: Option
     
     if isinstance(model, PLRNN):
         if B is None:
-            B = model.get_parameters()['B']
+            B = model.get_observation_model()
         recognition_model = gamma_weighted_pinv(B, Gamma)
     elif isinstance(model, KalmanFilter):
         A = model.params['A']

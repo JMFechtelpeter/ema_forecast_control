@@ -41,9 +41,9 @@ def train_project(project_name: str, n_runs: int=1, include_participants: Option
 def get_args() -> dict:
     parser = argparse.ArgumentParser(description='Multitasked model training based on project yml file.')
 
-    parser.add_argument('project_name', type=str, nargs='?', default='test_project')
+    parser.add_argument('project_name', type=str, nargs='?', default='test_project2')
     parser.add_argument('--n_runs', type=int, default=1)
-    parser.add_argument('--include_participants', type=int, nargs='+', default=[12])
+    parser.add_argument('--include_participants', type=int, nargs='+', default=[12, 13, 14])
     parser.add_argument('--n_processes', type=int, default=1)
     parser.add_argument('--use_gpu', type=int, default=0)
     parser.add_argument('--n_proc_per_gpu', type=int, default=1)
