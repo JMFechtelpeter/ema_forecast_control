@@ -25,7 +25,10 @@ class ModelCatalogue:
                 props = pd.DataFrame(index=[0])
                 props['model_dir'] = d
                 props['participant'] = str(args['participant'])
-                props['model_timestep'] = int(float(args['train_test_split']))
+                if props['model_timestep'] is not None:
+                    props['model_timestep'] = int(float(args['train_test_split']))
+                else:
+                    props['model_timestep'] = np.inf
                 props['model_datetime'] = 'NotImplemented'
                 props['train_on_last_n_steps'] = args['train_on_last_n_steps']
                 return props
@@ -80,10 +83,11 @@ class ModelCatalogue:
     def get_latest_model_dirs(self, participant: str, timestep: int|None=None, datetime: int|None=None) -> list[str]:
         if datetime is not None:
             raise NotImplementedError('Choose model dir by datetime')
-        if timestep is None:
-            timestep = np.inf
         models = self.catalogue[self.catalogue['participant']==participant].sort_values('model_timestep')
-        if (models['model_timestep'] < timestep).any():
+        if timestep is None:
+            models = models.loc[models['model_timestep']==models['model_timestep'].max()]
+            choose_dirs = models['model_dir'].to_list()
+        elif (models['model_timestep'] < timestep).any():
             models = models.loc[models['model_timestep']<timestep]
             models = models.loc[models['model_timestep']==models['model_timestep'].max()]
             choose_dirs = models['model_dir'].to_list()
