@@ -25,7 +25,7 @@ class ModelCatalogue:
                 props = pd.DataFrame(index=[0])
                 props['model_dir'] = d
                 props['participant'] = str(args['participant'])
-                if props['model_timestep'] is not None:
+                if args['train_test_split'] is not None:
                     props['model_timestep'] = int(float(args['train_test_split']))
                 else:
                     props['model_timestep'] = np.inf

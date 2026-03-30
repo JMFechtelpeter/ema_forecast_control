@@ -192,3 +192,15 @@ class colors:
 def cm2in(*cm):
     return tuple([i/2.54 for i in cm])
 
+def adjust_ylim(ax: mpl.axes.Axes, bottom: Optional[float]=None, top: Optional[float]=None):
+    ylim = np.array(ax.get_ylim())
+    ylim_range = ylim[1] - ylim[0]
+    if bottom is None and top is None:
+        bottom = 0.03
+        top = 0.03
+    if bottom is not None:
+        ylim[0] -= bottom * ylim_range
+    if top is not None:
+        ylim[1] += top * ylim_range
+    ax.set_ylim(ylim)
+    return ylim
