@@ -204,3 +204,11 @@ def adjust_ylim(ax: mpl.axes.Axes, bottom: Optional[float]=None, top: Optional[f
         ylim[1] += top * ylim_range
     ax.set_ylim(ylim)
     return ylim
+
+def discretized_colormap(base_cmap: str|mpl.colors.Colormap, segments: int, reversed: bool=False):
+    if isinstance(base_cmap, str):
+        base_cmap = mpl.colormaps[base_cmap]
+    sampling = np.linspace(0, 1, segments)
+    if reversed:
+        sampling = sampling[::-1]
+    return mpl.colors.ListedColormap(base_cmap(sampling))

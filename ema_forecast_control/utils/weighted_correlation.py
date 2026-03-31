@@ -2,6 +2,7 @@ import numpy as np
 from itertools import combinations
 from scipy.stats import rankdata, norm
 import pandas as pd
+from tqdm import tqdm
 
 # ---------- Weighted stats ----------
 def weighted_mean(a, w):
@@ -282,7 +283,7 @@ def hierarchical_bootstrap_pooled_corr(
     # 3) Hierarchical bootstrap: resample participants, then resample groups within
     pooled_boot = np.empty(B_outer, float)
 
-    for b in range(B_outer):
+    for b in tqdm(range(B_outer), desc="Hierarchical Bootstrap"):
         # resample participants with replacement
         idx_p = rng.integers(0, P, P)
         r_rep = []
@@ -394,7 +395,7 @@ def participant_bootstrap_pooled_corr(
 
     # Bootstrap over participants
     pooled_boot = np.empty(B, float)
-    for b in range(B):
+    for b in tqdm(range(B), desc="Bootstrapping"):
         idx = rng.integers(0, P, P)
         r_rep = rhos[idx]
         if use_fisher_z:

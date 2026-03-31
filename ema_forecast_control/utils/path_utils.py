@@ -17,6 +17,11 @@ def join_base_path(*subpaths: str) -> str:
     base_path = os.path.join(ROOT, *subpaths)
     return base_path
 
+def get_data_dir(dataset_subpath: str) -> str:
+    ''' Returns the full path to a data directory given its subpath within the data folder. '''
+    data_dir = os.path.join(ROOT, 'data', dataset_subpath)
+    return data_dir
+
 def get_data_file(data_file_subpath: str) -> str:
     ''' Returns the full path to a data file given its subpath within the data folder. '''
     data_file = os.path.join(ROOT, 'data', data_file_subpath)
@@ -60,10 +65,28 @@ def load_args(model_path: str) -> dict:
     # args = complement_args(args)
     return args
 
-def get_project_dict(project: str) -> dict:
+def get_project_dict(project: str, from_trained_models: bool = False) -> dict:
     ''' Loads and returns the project dictionary from a YAML file for a given project name. '''
-    with open(os.path.join(ROOT, f'projects/{project}.yml'), 'r') as file:
+    if from_trained_models:
+        project_path = os.path.join(ROOT, 'trained_models', project, f'{project}.yml')
+    else:
+        project_path = os.path.join(ROOT, 'projects', f'{project}.yml')
+    with open(project_path, 'r') as file:
         project_dict = yaml.safe_load(file)
     project_dict['project_name'] = project
     return project_dict
 
+def get_project_arg(project: str, arg_name: str, from_trained_models: bool = True):
+    ''' Retrieves a specific argument value from the project dictionary for a given project name. '''
+    ### AI4U hotfix
+    if project.startswith('v2_MRT') or project.startswith('v3_MRT'):
+        if arg_name == 'obs_features':
+            return ['EMA_mood','EMA_disappointed','EMA_scared','EMA_worry',
+                'EMA_down','EMA_sad','EMA_confidence','EMA_stress','EMA_lonely',
+                'EMA_energetic','EMA_concentration','EMA_resilience','EMA_tired',
+                'EMA_satisfied', 'EMA_relaxed']
+    ### end AI4U hotfix
+
+    project_dict = get_project_dict(project, from_trained_models=from_trained_models)
+    arg_value = project_dict.get(arg_name)
+    return arg_value
