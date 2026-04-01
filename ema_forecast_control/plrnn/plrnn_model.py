@@ -352,6 +352,15 @@ class PLRNN(nn.Module):
         r = 1 / math.sqrt(shape[-1]) * gain
         nn.init.uniform_(tensor, -r, r)
         return nn.Parameter(tensor, requires_grad=True)
+
+    def get_recognition_model(self, Gamma: Optional[tc.Tensor]=None, B: Optional[tc.Tensor]=None):
+        if B is None:
+            B = self.get_observation_model()
+        if Gamma is None:
+            B_inv = tc.pinverse(B)
+        else:
+            B_inv = tc.inverse(B.T @ tc.inverse(Gamma) @ B) @ B.T @ tc.inverse(Gamma)
+        return B_inv
  
     old_state_dict_map = {'latent_model.latent_step.A':'parameters_.A',
                         'latent_model.latent_step.W1':'parameters_.W1',

@@ -6,7 +6,7 @@ import glob
 import pandas as pd
 import numpy as np
 
-from ema_forecast_control.utils import path_utils, eval_utils
+from ema_forecast_control.utils import path_utils, evaluation_utils
 
 class ModelCatalogue:
 

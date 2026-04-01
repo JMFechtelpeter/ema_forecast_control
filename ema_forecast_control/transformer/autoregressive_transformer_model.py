@@ -148,6 +148,9 @@ class AutoregressiveTransformer(nn.Module):
     
     def count_parameters(self):
         return sum([p.numel() for p in self.parameters()])
+
+    def get_recognition_model(self, *args, **kwargs):
+        return None
             
 
 class PositionalEncoder(nn.Module):

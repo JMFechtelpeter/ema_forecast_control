@@ -84,6 +84,9 @@ class SimpleModel(nn.Module):
         else:
             val_loss = tc.tensor(0.)
         return val_loss
+
+    def get_recognition_model(self, *args, **kwargs):
+        return None
     
 
 def MovingAverage(p: int):

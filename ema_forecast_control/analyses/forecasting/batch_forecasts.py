@@ -1,45 +1,22 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-"""
-Created on Mon Mar 28 12:15:47 2022
-
-@author: janik
-"""
-
 import logging
 import os
 from typing import Optional
 from dataclasses import dataclass, field
-from bptt.plrnn import PLRNN 
-from comparison_models.simple_models.models import SimpleModel, InputsRegression
-from comparison_models.transformer.time_series_transformer import AutoregressiveTransformer
-from dataset.multimodal_dataset import MultimodalDataset
 from concurrent.futures import ProcessPoolExecutor, as_completed
 from tqdm import tqdm
 import numpy as np
 import pandas as pd
 import torch as tc
+
+from ema_forecast_control.plrnn.plrnn_model import PLRNN
+from ema_forecast_control.transformer.transformer_model import AutoregressiveTransformer
+from ema_forecast_control.kalman_filter.kalman_filter_model import KalmanFilter
+from ema_forecast_control.simple_models.simple_models import VAR1, MovingAverage, InputsRegression, MeanPredictor
+from ema_forecast_control.dataset.time_series_dataset import TimeSeriesDataset
+
 import eval_reallabor_utils
 import utils
 import data_utils
-
-def configure_logging(verbose: str, path: Optional[str]=None):   
-    if path is None:
-        path = os.getcwd() 
-    logger = logging.getLogger('root')
-    logger.handlers = []
-    logger.setLevel(logging.INFO)
-    if verbose=='log':
-        hdlr = logging.FileHandler(os.path.join(path, 'log.txt'))
-    elif verbose=='print':
-        hdlr = logging.StreamHandler()
-    else:
-        hdlr = logging.NullHandler()
-    hdlr.setLevel(logging.INFO)
-    formatter = logging.Formatter('%(asctime)s: %(name)s: %(levelname)s: %(message)s')
-    hdlr.setFormatter(formatter)
-    logger.addHandler(hdlr)
-    return logger
 
 def _init_worker(threads_per_worker: int = 1):
     os.environ['OMP_NUM_THREADS'] = str(threads_per_worker)

@@ -124,3 +124,13 @@ class KalmanFilter(tc.nn.Module):
         else:
             result = tc.zeros((steps, self.args['dim_x'])) * tc.nan
         return result
+
+    def get_recognition_model(self, *args, **kwargs) -> tc.Tensor:
+        A = self.params['A']
+        B = self.params['B']
+        Sigma = self.params['Sigma']
+        Gamma = self.params['Gamma']
+        Sigma_zz = tc.tensor(linalg.solve_discrete_lyapunov(A, Sigma), dtype=A.dtype)
+        Sigma_zx = Sigma_zz @ B.T
+        Sigma_xx = B @ Sigma_zz @ B.T + Gamma
+        return Sigma_zx @ tc.inverse(Sigma_xx)

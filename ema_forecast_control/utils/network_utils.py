@@ -137,7 +137,7 @@ def plot_individual_network_graph(network: tc.Tensor, directed: bool=True, inver
 
 def get_network_matrix(model: PLRNN|KalmanFilter|VAR1, x: Optional[tc.Tensor]=None, Gamma: Optional[tc.Tensor]=None, B: Optional[tc.Tensor]=None):
 
-    B_inv = get_recognition_matrix(model, Gamma=Gamma, B=B)
+    B_inv = model.get_recognition_model(Gamma=Gamma, B=B)
 
     if isinstance(model, PLRNN):
         if x is not None:
@@ -168,37 +168,6 @@ def get_network_matrix(model: PLRNN|KalmanFilter|VAR1, x: Optional[tc.Tensor]=No
     elif isinstance(model, VAR1):
         network = model.params['A']
     return network
-
-
-def get_recognition_matrix(model: PLRNN|KalmanFilter|tc.nn.Module, Gamma: Optional[tc.Tensor]=None, B: Optional[tc.Tensor]=None):
-
-    def gamma_weighted_pinv(B: tc.Tensor, Gamma: Optional[tc.Tensor]):
-        if Gamma is None:
-            B_inv = tc.pinverse(B)
-        else:
-            B_inv = tc.inverse(B.T @ tc.inverse(Gamma) @ B) @ B.T @ tc.inverse(Gamma)
-        return B_inv
-
-    def one_shot_kalman_gain(A: tc.Tensor, B: tc.Tensor, Sigma: tc.Tensor, Gamma: tc.Tensor):
-        Sigma_zz = tc.tensor(linalg.solve_discrete_lyapunov(A, Sigma), dtype=A.dtype)
-        Sigma_zx = Sigma_zz @ B.T
-        Sigma_xx = B @ Sigma_zz @ B.T + Gamma
-        return Sigma_zx @ tc.inverse(Sigma_xx)
-    
-    if isinstance(model, PLRNN):
-        if B is None:
-            B = model.get_observation_model()
-        recognition_model = gamma_weighted_pinv(B, Gamma)
-    elif isinstance(model, KalmanFilter):
-        A = model.params['A']
-        B = model.params['B']
-        Sigma = model.params['Sigma']
-        Gamma = model.params['Gamma']
-        recognition_model = one_shot_kalman_gain(A, B, Sigma, Gamma)
-    else:
-        recognition_model = None
-    
-    return recognition_model
 
 
 def weighted_degree_centrality(network: tc.Tensor, mode: str='out', absolute: bool=True):
@@ -232,13 +201,11 @@ def impulse_response(model: PLRNN|KalmanFilter|VAR1|AutoregressiveTransformer, u
                      x0: Optional[tc.Tensor]=None, cumulative: bool=False, relative: bool=False) -> tc.Tensor:
     ''' IR is of shape (batch * T * dim_x), or (batch * dim_x) if cumulative. If x0 has no batch dimension, it is omitted.'''
 
-    
-
     if x0 is None:
         x0 = tc.zeros(model.args['dim_x'])
     inputs = tc.zeros((T, model.args['dim_s']))
     inputs[0] = u
-    recognition_matrix = get_recognition_matrix(model, Gamma=Gamma)
+    recognition_matrix = model.get_recognition_model(Gamma=Gamma)
     ir = model.generate_free_trajectory(x0, T, inputs, 
                                         recognition_matrix=recognition_matrix,
                                         observation_matrix=B) - x0.unsqueeze(-2)
