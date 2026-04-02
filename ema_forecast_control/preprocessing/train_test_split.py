@@ -21,7 +21,10 @@ def train_test_split(df: pd.DataFrame, split_arg: Optional[int|str|pd.Timestamp]
         return df.iloc[:], df.iloc[0:0]
     
     if isinstance(split_arg, str):
-        split_arg = pd.to_datetime(split_arg)
+        try:
+            split_arg = int(float(split_arg))
+        except ValueError:
+            split_arg = pd.to_datetime(split_arg)
     
     if isinstance(split_arg, pd.Timestamp):
         test_index = determine_index_from_timestamp(df, split_arg)

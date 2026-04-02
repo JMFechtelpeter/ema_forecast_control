@@ -90,3 +90,7 @@ def get_project_arg(project: str, arg_name: str, from_trained_models: bool = Tru
     project_dict = get_project_dict(project, from_trained_models=from_trained_models)
     arg_value = project_dict.get(arg_name)
     return arg_value
+
+def get_project_model_root(project_name: str) -> str:
+    ''' Returns the root directory for trained models of a given project. '''
+    return join_base_path('trained_models', project_name)

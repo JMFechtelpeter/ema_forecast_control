@@ -145,6 +145,9 @@ class AutoregressiveTransformer(nn.Module):
         tgt_data = tgt_data.squeeze(0)
 
         return tgt_data[1:], 'placeholder_for_latent_traj_for_compatibility'
+
+    def get_parameters(self):
+        return self.parameters()
     
     def count_parameters(self):
         return sum([p.numel() for p in self.parameters()])

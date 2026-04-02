@@ -1,22 +1,19 @@
 import logging
+import ast
 import os
 from typing import Optional
-from dataclasses import dataclass, field
+import copy
 from concurrent.futures import ProcessPoolExecutor, as_completed
+from argparse import ArgumentParser
 from tqdm import tqdm
 import numpy as np
 import pandas as pd
 import torch as tc
 
-from ema_forecast_control.plrnn.plrnn_model import PLRNN
-from ema_forecast_control.transformer.transformer_model import AutoregressiveTransformer
-from ema_forecast_control.kalman_filter.kalman_filter_model import KalmanFilter
-from ema_forecast_control.simple_models.simple_models import VAR1, MovingAverage, InputsRegression, MeanPredictor
 from ema_forecast_control.dataset.time_series_dataset import TimeSeriesDataset
+from ema_forecast_control.utils import evaluation_utils, path_utils, logging_utils
+from ema_forecast_control.utils import backwards_compatibility
 
-import eval_reallabor_utils
-import utils
-import data_utils
 
 def _init_worker(threads_per_worker: int = 1):
     os.environ['OMP_NUM_THREADS'] = str(threads_per_worker)
@@ -29,38 +26,6 @@ def _init_worker(threads_per_worker: int = 1):
         _tc.set_num_interop_threads(1)
     except Exception:
         pass
-
-@dataclass
-class EvaluationArgs:
-
-    main_dir: str
-    test_data_dir: str
-    epoch_criterion: str
-    hyperparameters: list[str]=field(default_factory=list)
-    random_z0: bool=False
-    ahead_prediction_steps: Optional[int]=None
-    trajectory_samples: int=5
-    prewarm_steps_on_train_set: int|list=2
-    allow_test_inputs: bool=False
-    test_split_file: Optional[str]=None
-    test_split_df: Optional[pd.DataFrame]=None
-    test_set_offset_days: int=0
-    first_alarms_file: Optional[str]=None
-    first_alarms_df: Optional[pd.DataFrame]=None
-    include_hypers: dict=field(default_factory=dict)
-    exclude_hypers: dict=field(default_factory=dict)
-    calculate_max_lyapunov: bool=False
-    get_training_time: bool=True
-    get_number_of_params: bool=True
-    ensemble_predictors: bool=False
-    buggy_version_of_ensemble: bool=False
-    observation_model_version: str='empirical covariance'   # Options: 'pseudoinverse', 'empirical covariance', 'gaussian obs model'
-    label: str=''
-    overwrite: bool=False
-    file_format: str='csv'
-    verbose: str='none'
-    preload_data: bool=True
-    num_workers: int=1
 
 
 def evaluate_complete_directory(eval_args: EvaluationArgs):
@@ -82,43 +47,41 @@ def evaluate_complete_directory(eval_args: EvaluationArgs):
     - overwrite: overwrite existing evaluation files with the same name    
     """
     assert eval_args.file_format in ['csv', 'json'], 'Choose either csv or json as file format'
-    assert os.path.exists(eval_args.main_dir), f'Directory {eval_args.main_dir} does not exist'
+    assert os.path.exists(path_utils.get_project_model_root(eval_args.project_name)), f'Directory {eval_args.project_name} does not exist'
+
+    model_dir_paths = evaluation_utils.get_model_folders(eval_args.project_name)
+    assert len(model_dir_paths) > 0,'Given project_name path does not contain models.'
+
     if eval_args.preload_data:
-        model_dir_paths, train_data_mapping, test_data_mapping = eval_reallabor_utils.get_model_folders_and_preload_data(eval_args.main_dir, eval_args.test_data_dir, use_tqdm=True)
+        test_data_mapping = evaluation_utils.preload_data(model_dir_paths, eval_args.test_data_dir, use_tqdm=True)
     else:
-        model_dir_paths = eval_reallabor_utils.get_model_folders(eval_args.main_dir)
-        train_data_mapping = {k: None for k in model_dir_paths}
-        test_data_mapping = {k: None for k in model_dir_paths}
-    assert len(model_dir_paths) > 0,'Given main_dir path does not contain models.'
+        test_data_mapping = {k: None for k in model_dir_paths}    
 
     # create folder to store summary plots and metrics
-    summary_path = os.path.join(eval_args.main_dir, f'00_summary_{eval_args.label}')
-    try:
-        os.makedirs(summary_path, exist_ok=False)
-    except:
-        if not eval_args.overwrite:
-            decision = input(f'An evaluation path with label "{eval_args.label}" already exists. Overwrite? ')
-            if decision not in ['y', 'Y', '1']:
-                return None
-    log = configure_logging(eval_args.verbose, path=summary_path)
-    print(f'Evaluating directory {eval_args.main_dir}, label {eval_args.label}')
-    log.info(f'Evaluating directory {eval_args.main_dir}, label {eval_args.label}')
+    summary_path = path_utils.join_base_path('forecasts')
+    forecast_file_name = os.path.join(summary_path, '_'.join([eval_args.project_name, eval_args.label, f'forecasts.{eval_args.file_format}']))
+    if os.path.exists(forecast_file_name) and not eval_args.overwrite:
+        decision = input(f'An evaluation path with label "{eval_args.label}" already exists. Overwrite? ')
+        if decision not in ['y', 'Y', '1']:
+            return None
+    log = logging_utils.configure_logging(summary_path, eval_args.verbose)
+    print(f'Evaluating project {eval_args.project_name}, label {eval_args.label}')
+    log.info(f'Evaluating project {eval_args.project_name}, label {eval_args.label}')
     for arg in eval_args.__dict__.keys():
         log.info(f'{arg}: {eval_args.__dict__[arg]}')
 
     if eval_args.test_split_file is not None:
         eval_args.test_split_df = pd.read_csv(eval_args.test_split_file, index_col=0)
-    elif eval_args.first_alarms_file is not None:
-        eval_args.first_alarms_df = pd.read_csv(eval_args.first_alarms_file)
+    else:
+        eval_args.test_split_df = None
     results = []
     n_errors = 0
 
-    if eval_args.num_workers > 1:
-        # Choose backend
+    if eval_args.n_processes > 1:
         from multiprocessing import get_context
         mp_ctx = get_context('spawn')  # safer with MKL/NumPy
         Executor = ProcessPoolExecutor
-        executor_kwargs = dict(max_workers=eval_args.num_workers,
+        executor_kwargs = dict(max_workers=eval_args.n_processes,
                                 mp_context=mp_ctx,
                                 initializer=_init_worker,
                                 initargs=(1,))
@@ -127,8 +90,7 @@ def evaluate_complete_directory(eval_args: EvaluationArgs):
             futures = {}
             for folder in model_dir_paths:
                 kwargs = {}
-                kwargs['preloaded_train_data'] = train_data_mapping[folder]
-                kwargs['preloaded_test_data'] = test_data_mapping[folder]
+                kwargs['preloaded_data'] = test_data_mapping[folder]
                 futures[executor.submit(
                     evaluate_model_folder, folder, eval_args, **kwargs
                 )] = folder
@@ -146,8 +108,7 @@ def evaluate_complete_directory(eval_args: EvaluationArgs):
     else:
         for folder in tqdm(model_dir_paths):        
             res, err, _ = evaluate_model_folder(folder, eval_args,
-                                            preloaded_train_data=train_data_mapping[folder],
-                                            preloaded_test_data=test_data_mapping[folder])
+                                            preloaded_data=test_data_mapping[folder])
             if len(res)>0:
                 results.append(res)
             if len(err)>0:
@@ -158,13 +119,11 @@ def evaluate_complete_directory(eval_args: EvaluationArgs):
 
     if len(results) > 0:
         results = pd.concat(results, ignore_index=True)
-        if eval_args.ensemble_predictors:
-            results = eval_reallabor_utils.create_ensemble_prediction_eval_df(results, sort_result=eval_args.buggy_version_of_ensemble)
         results.index.name = 'idx'
         if eval_args.file_format=='csv':
-            results.to_csv(os.path.join(summary_path, 'evaluation.csv'))
+            results.to_csv(forecast_file_name)
         elif eval_args.file_format=='json':
-            results.to_json(os.path.join(summary_path, 'evaluation.json'))
+            results.to_json(forecast_file_name)
     else:
         log.error('No models were evaluated.')
     
@@ -173,91 +132,53 @@ def evaluate_complete_directory(eval_args: EvaluationArgs):
     return results
 
 
-def evaluate_model_folder(folder: str, eval_args: EvaluationArgs, preloaded_train_data: pd.DataFrame|None=None, preloaded_test_data: pd.DataFrame|None=None):
+def evaluate_model_folder(folder: str, eval_args: EvaluationArgs, preloaded_data: pd.DataFrame|None=None):
     
     log = logging.getLogger('evaluate_model_folder')
     errors = []
     results = []
-    args = eval_reallabor_utils.update_data_path(utils.load_args(folder))
-    test_args = eval_reallabor_utils.update_data_path(utils.load_args(folder))
+    args = backwards_compatibility.update_data_path(path_utils.load_args(folder))
+    if eval_args.test_data_dir is not None:
+        args['data_path'] = eval_args.test_data_dir
     if eval_args.test_split_df is not None:    
-        end_train_set = eval_args.test_split_df[args['participant']].dropna().to_numpy()
         begin_test_set = eval_args.test_split_df[args['participant']].dropna().to_numpy()
-    elif eval_args.first_alarms_df is not None:
-        train_dataset_name = os.path.split(os.path.split(args['data_path'])[0])[1]
-        test_dataset_name = os.path.split(eval_args.test_data_dir)[1]
-        participant = int(args['participant'])
-        validation_split = int(float(args['train_on_data_until_timestep']))
-        tf = eval_args.first_alarms_df[eval_args.first_alarms_df['participant']==participant]
-        day_of_val_split = tf.loc[tf[train_dataset_name]==validation_split, 'day']
-        if len(day_of_val_split)==1:
-            day_of_val_split = day_of_val_split.item()
-        else:
-            errors.append(f'Validation index {day_of_val_split} is not among first alarms.')
-            return [], errors
-        if (tf['day']==day_of_val_split+eval_args.test_set_offset_days).any():
-            end_train_set = [tf.loc[tf['day']==day_of_val_split+eval_args.test_set_offset_days, train_dataset_name].item()]
-            begin_test_set = [tf.loc[tf['day']==day_of_val_split+eval_args.test_set_offset_days, test_dataset_name].item()]
-        else:  # day_of_val_split + test_set_offset_days doesn't exist
-            errors.append(f'Test index {day_of_val_split+eval_args.test_set_offset_days} is not among first alarms.')
-            return [], errors
     else:
-        end_train_set = [None]
         begin_test_set = [None]
-    for ets, bts in zip(end_train_set, begin_test_set):
-        if ets is not None:
-            args['train_on_data_until_timestep'] = ets
-            args['train_on_data_until_datetime'] = None
+    for bts in begin_test_set:
         if bts is not None:
-            test_args['train_on_data_until_timestep'] = bts
-            test_args['train_on_data_until_datetime'] = None
-        # if preloaded_train_data is not None or preloaded_test_data is not None:
+            args['train_test_split'] = bts
         try:
-            model, train_dataset, test_dataset = eval_reallabor_utils.load_model_and_data(
-                folder,
-                epoch_criterion=eval_args.epoch_criterion, 
-                allow_test_inputs=eval_args.allow_test_inputs,
-                with_args=args,
-                alternate_test_args=test_args,
-                load_test_data_from=eval_args.test_data_dir,
-                preloaded_train_data=preloaded_train_data, preloaded_test_data=preloaded_test_data,
-                hierarchized=False)
+            train_data, train_inputs, test_data, test_inputs = evaluation_utils.prepare_data_for_model_evaluation(
+                folder, allow_test_inputs=eval_args.allow_test_inputs, with_args=args,
+                preloaded_data=preloaded_data
+            )
+            log.info(f"Loaded data with {train_data.shape[0]} time steps.")
         except Exception as e:
-            errors.append(f'Test set beginning at {test_args["train_on_data_until_timestep"]}: {str(e)}')
+            errors.append(f'Test set beginning at {args["train_test_split"]}: Error loading data {str(e)}')
             continue
-        if eval_args.observation_model_version != 'pseudoinverse':
+        try:
+            model = evaluation_utils.init_model_from_path(folder, with_args=args, select_epoch=eval_args.epoch_criterion)
+        except Exception as e:
+            errors.append(f'Test set beginning at {args["train_test_split"]}: Could not initialize model ({str(e)})')
+            continue
+        if not eval_args.use_pseudoinverse:
             try:
-                Gamma, B = eval_reallabor_utils.get_Gamma_and_B(model, folder, version=eval_args.observation_model_version)
+                Gamma = evaluation_utils.get_Gamma(model, folder)
             except Exception as e:
-                errors.append(f'Test set beginning at {test_args["train_on_data_until_timestep"]}: Could not get observation model ({str(e)})')
+                errors.append(f'Test set beginning at {args["train_on_data_until_timestep"]}: Could not get recognition model ({str(e)})')
                 continue
         else:
-            Gamma = B = None
-        continue_ = False
-        if test_dataset is None:
-            continue_ = True
-        for hyper, values in eval_args.include_hypers.items():
-            if model.args[hyper] not in values:
-                continue_ = True
-                break
-        if continue_:
+            Gamma = None
+        if len(test_data) == 0:
             continue
-        for hyper, values in eval_args.exclude_hypers.items():
-            if model.args[hyper] in values:
-                continue_ = True
-                break
-        if continue_:
+        if not evaluation_utils.include_exclude_hypers(model.args, eval_args.include_hypers, eval_args.exclude_hypers):
             continue
-        model.args = eval_reallabor_utils.complement_args_with_data_info(model.args, test_data_dir=eval_args.test_data_dir,
-                                                                         preloaded_test_data=preloaded_test_data)  # Adds 'valid_training_data_points' and 'valid_training_data_ratio' to args
-        res = evaluate_model_on_dataset(model, train_dataset, test_dataset, Gamma, B, eval_args.hyperparameters, eval_args.ahead_prediction_steps,
-                                        eval_args.trajectory_samples, eval_args.prewarm_steps_on_train_set, eval_args.random_z0,
-                                        eval_args.calculate_max_lyapunov)
-        res['test_day'] = test_args['train_on_data_until_timestep']
-        if eval_args.get_training_time:
-            res['training_time'] = eval_reallabor_utils.get_training_time(folder)
-        if eval_args.get_number_of_params:
-            res['n_params'] = eval_reallabor_utils.get_number_of_params(model)
+        model.args = evaluation_utils.complement_args_with_data_info(model.args, train_data)
+        res = evaluate_model_on_data(model, train_data, train_inputs, test_data, test_inputs, Gamma, eval_args.hyperparameters, eval_args.ahead_prediction_steps,
+                                        eval_args.trajectory_samples, eval_args.prewarm_steps, eval_args.random_z0)
+        res['train_test_split'] = args['train_test_split']
+        res['training_time'] = evaluation_utils.get_training_time(folder)
+        res['n_params'] = evaluation_utils.get_number_of_params(model)
         res.reset_index(inplace=True)
         results.append(res)
     
@@ -268,10 +189,11 @@ def evaluate_model_folder(folder: str, eval_args: EvaluationArgs, preloaded_trai
     return results, errors, folder
 
 
-def evaluate_model_on_dataset(model: PLRNN|SimpleModel|AutoregressiveTransformer, train_dataset: MultimodalDataset, test_dataset: MultimodalDataset, 
-                              Gamma: Optional[tc.Tensor], B: Optional[tc.Tensor],
+def evaluate_model_on_data(model, train_data: tc.Tensor, train_inputs: tc.Tensor,
+                            test_data: Optional[tc.Tensor], test_inputs: Optional[tc.Tensor],
+                              Gamma: Optional[tc.Tensor],
                               hyperparameters: list, ahead_prediction_steps: Optional[int], trajectory_samples: int,
-                              prewarm_steps_on_train_set: int|list, random_z0: bool, calculate_max_lyapunov: bool):
+                              prewarm_steps_on_train_set: int|list, random_z0: bool):
     """
     Evaluate single model on test set of dataset, saves results in a pd.DataFrame with columns:
     - [prewarm_steps, sample, steps, feature, model_id, run] (these hyperparameters are always saved)
@@ -287,56 +209,47 @@ def evaluate_model_on_dataset(model: PLRNN|SimpleModel|AutoregressiveTransformer
     """
     log = logging.getLogger('evaluate_model_on_dataset')
     if ahead_prediction_steps is not None:
-        ahead_prediction_steps = min(ahead_prediction_steps, test_dataset.T-1)
+        ahead_prediction_steps = min(ahead_prediction_steps, test_data.shape[0]-1)
     else:
-        ahead_prediction_steps = test_dataset.T-1
-    res = prepare_evaluation_df(model.args, train_dataset, test_dataset, ahead_prediction_steps, trajectory_samples, prewarm_steps_on_train_set)
+        ahead_prediction_steps = test_data.shape[0]-1
+
+    feature_names = model.args['obs_features']
+    res = prepare_evaluation_df(model.args, train_data, test_data, feature_names, ahead_prediction_steps, trajectory_samples, prewarm_steps_on_train_set)
 
     if model is not None:
         predictions = []
         predictions_wo_inputs = []
-        # sq_residuals = []
-        gt_emas = test_dataset.timeseries['emas'].data
-        if test_dataset.timeseries['inputs'] is not None:
-            gt_inputs = test_dataset.timeseries['inputs'].data
-            zero_inputs = tc.zeros_like(gt_inputs)
-            # zero_inputs = gt_inputs.clone()
-            # zero_inputs[0] = 0
+        if test_inputs is not None:
+            zero_inputs = tc.zeros_like(test_inputs)
         else:
-            gt_inputs = None
+            test_inputs = None
             zero_inputs = None
-        x0 = gt_emas[0]
-        if calculate_max_lyapunov and isinstance(model, PLRNN) and not x0.isnan().any():
-            max_lyapunov = eval_reallabor_utils.lyapunov_spectrum(model, x0, 100, 10).max().detach().numpy()
-            res['max_lyapunov'] = max_lyapunov
-        recognition_matrix = eval_reallabor_utils.get_recognition_matrix(model, Gamma=Gamma, B=B)
-        observation_matrix = B
+        x0 = test_data[0]
+        recognition_matrix = model.get_recognition_model(Gamma=Gamma)
         for p in res.index.get_level_values('prewarm_steps').unique():
             if p > 0:
-                prewarm_data, prewarm_inputs = train_dataset.data(slice(-p-1,-1))
+                prewarm_data = train_data[-p-1:-1]
+                prewarm_inputs = train_inputs[-p-1:-1] if train_inputs is not None else None
             else:
-                prewarm_data = prewarm_inputs = None            
+                prewarm_data = prewarm_inputs = None
             for k in range(trajectory_samples):
                 if random_z0:
                     z0 = tc.randn(model.args['dim_z'])
                 else:
-                # elif isinstance(model, AutoregressiveTransformer):
                     z0 = None
-                # else:
-                #     z0 = tc.zeros(model.args['dim_z'])
                 generated, latent_traj = model.generate_free_trajectory(
-                    x0, ahead_prediction_steps, inputs=gt_inputs, z0=z0,
+                    x0, ahead_prediction_steps, inputs=test_inputs, z0=z0,
                     prewarm_data=prewarm_data, prewarm_inputs=prewarm_inputs,
-                    recognition_matrix=recognition_matrix, observation_matrix=observation_matrix,
+                    recognition_matrix=recognition_matrix,
                     return_hidden=True, 
                 )
                 generated = tc.cat([tc.full((1, generated.shape[1]), tc.nan), generated], dim=0)
                 predictions.append(generated.flatten())
-                if gt_inputs is not None:
+                if test_inputs is not None:
                     generated_wo_inputs, latent_traj = model.generate_free_trajectory(
                         x0, ahead_prediction_steps, inputs=zero_inputs, z0=z0,
                         prewarm_data=prewarm_data, prewarm_inputs=prewarm_inputs,
-                        recognition_matrix=recognition_matrix, observation_matrix=observation_matrix,
+                        recognition_matrix=recognition_matrix,
                         return_hidden=True
                     )
                     generated_wo_inputs = tc.cat([tc.full((1, generated_wo_inputs.shape[1]), tc.nan), generated_wo_inputs], dim=0)
@@ -349,37 +262,31 @@ def evaluate_model_on_dataset(model: PLRNN|SimpleModel|AutoregressiveTransformer
             log.warning(f'{model.args["model_id"]} did not generate any predictions.')
             
         for hyper in hyperparameters:
-            if (hyper in ['reg_alphas', 'reg_ratios']):
-                res[hyper] = model.args[hyper][0]
-            elif hyper == 'data_path':
+            if hyper == 'data_path':
                 res[hyper] = os.path.split(model.args[hyper])[1]
             elif 'preprocessing' in hyper and isinstance(model.args[hyper], list):
                 res[hyper] = '-'.join(model.args[hyper])
             elif hyper == 'intervention':
                 res[hyper] = 0
-                if gt_inputs is not None:
+                if test_inputs is not None:
                     for k in res.index.get_level_values('steps').unique():
                         if k>0:
-                            res.loc[(slice(None),slice(None),k), 'intervention'] = (gt_inputs[k-1].nansum()>0).item() * 1
-                        # if gt_inputs[0].nansum()>0:
-                        #     res['intervention'] = 1
+                            res.loc[(slice(None),slice(None),k), 'intervention'] = (test_inputs[k-1].nansum()>0).item() * 1
             elif hyper in model.args.keys():
                 res[hyper] = model.args[hyper]
             else:
                 raise ValueError(f'Hyperparameter {hyper} not found')
-                # res[hyper] = eval_reallabor_utils.add_hyper(hyper, model)
         
     return res
 
 
-def prepare_evaluation_df(args, train_dataset: MultimodalDataset, test_dataset: MultimodalDataset,
+def prepare_evaluation_df(args, train_data: tc.Tensor, test_data: tc.Tensor, feature_names: list[str],
                           ahead_prediction_steps: int, trajectory_samples: int, prewarm_steps_on_train_set: int|list):  
     if isinstance(prewarm_steps_on_train_set, int):
         prewarm_steps_on_train_set = [prewarm_steps_on_train_set]
-    n_prewarm_options = len(prewarm_steps_on_train_set)
+    n_prewarm_options = len(set(prewarm_steps_on_train_set))
 
-    feature_names = train_dataset.timeseries['emas'].feature_names
-    df_index = [prewarm_steps_on_train_set, range(trajectory_samples), range(ahead_prediction_steps+1), feature_names]
+    df_index = [sorted(set(prewarm_steps_on_train_set)), range(trajectory_samples), range(ahead_prediction_steps+1), feature_names]
     df_index_names = ['prewarm_steps', 'sample', 'steps', 'feature']   
     res = pd.DataFrame(index=pd.MultiIndex.from_product(df_index, names=df_index_names), columns=['model_id', 'run'])
     res['model_id'] = args['model_id']
@@ -387,17 +294,13 @@ def prepare_evaluation_df(args, train_dataset: MultimodalDataset, test_dataset: 
     date_identifier = 'train_until' if 'train_until' in args else ('train_on_data_until_timestep' if 'train_on_data_until_timestep' in args else 'train_on_data_until_datetime')    ####
     res[date_identifier] = args[date_identifier]
     res['run'] = args['run']
-    n_feat = train_dataset.timeseries['emas'].data.shape[1]
-    train_mean = train_dataset.timeseries['emas'].data.nanmean(0)
-    train_var = ((train_dataset.timeseries['emas'].data - train_mean.unsqueeze(0))**2).nanmean(0)
-    ground_truth = test_dataset.timeseries['emas'].data[:ahead_prediction_steps+1]
+    n_feat = train_data.shape[1]
+    train_mean = train_data.nanmean(0)
+    train_var = ((train_data - train_mean.unsqueeze(0))**2).nanmean(0)
+    ground_truth = test_data[:ahead_prediction_steps+1]
     ground_truth_mean = ground_truth[1:].nanmean(0)
     ground_truth_var = ((ground_truth[1:] - ground_truth_mean.unsqueeze(0))**2).nanmean(0)
     res['ground_truth'] = ground_truth.flatten().repeat(n_prewarm_options*trajectory_samples)
-    res['gt_mean'] = ground_truth_mean.repeat(n_prewarm_options*(ahead_prediction_steps+1)*trajectory_samples)
-    res['gt_var'] = ground_truth_var.repeat(n_prewarm_options*(ahead_prediction_steps+1)*trajectory_samples)
-    res['train_mean'] = train_mean.repeat(n_prewarm_options*(ahead_prediction_steps+1)*trajectory_samples)
-    res['train_var'] = train_var.repeat(n_prewarm_options*(ahead_prediction_steps+1)*trajectory_samples)
     res['prediction'] = np.nan
     res['prediction_without_inputs'] = np.nan
 
@@ -406,62 +309,30 @@ def prepare_evaluation_df(args, train_dataset: MultimodalDataset, test_dataset: 
 
 if __name__ == '__main__':
 
-    MRT = 2
+    parser = ArgumentParser(description='Batch model evaluation')
+    parser.add_argument('evaluate_projects', nargs='*', type=str, default=[f'v3_MRT3_every_day'], help='List of project directories to evaluate')
+    parser.add_argument('--test_data_dir', type=str, default=None, help='Evaluate on data from this directory')
+    parser.add_argument('--epoch_criterion', type=str, default='latest', help='Epoch selection criterion')
+    parser.add_argument('--hyperparameters', type=str, nargs='*', default=['dim_z'], help='Additional hyperparameters to save')
+    parser.add_argument('--random_z0', action='store_true', help='Sample a random latent initial state')
+    parser.add_argument('--ahead_prediction_steps', type=int, default=10, help='Number of prediction steps ahead')
+    parser.add_argument('--trajectory_samples', type=int, default=1, help='Number of forecast samples per model')
+    parser.add_argument('--prewarm_steps', type=int, nargs='+', default=[0], help='Prewarm steps on the training set')
+    parser.add_argument('--allow_test_inputs', action='store_true', help='Allow using test inputs during evaluation')
+    parser.add_argument('--test_split_file', type=str, default=None, help='CSV file with test split information')
+    parser.add_argument('--include_hypers', type=ast.literal_eval, default={}, help='Dict of hyperparameters to include')
+    parser.add_argument('--exclude_hypers', type=ast.literal_eval, default={}, help='Dict of hyperparameters to exclude')
+    parser.add_argument('--use_pseudoinverse', action='store_true', help='Use the pseudoinverse observation model instead of pseudo-Kalman gain')
+    parser.add_argument('--label', type=str, default='', help='Label appended to the output file name')
+    parser.add_argument('--overwrite', action='store_true', help='Overwrite existing output files')
+    parser.add_argument('--file_format', type=str, choices=['csv', 'json'], default='json', help='Output file format')
+    parser.add_argument('--verbose', type=str, choices=['none', 'print', 'log'], default='none', help='Logging verbosity')
+    parser.add_argument('--preload_data', action='store_true', help='Preload data before evaluation')
+    parser.add_argument('--n_processes', type=int, default=4, help='Number of worker processes')
 
-    evaluate_main_dirs = [  
-                            # data_utils.join_base_path(f'ordinal-bptt/results/v3_MRT{MRT}_every_day'),
-                            # data_utils.join_base_path(f'ordinal-bptt/results/v2_MRT{MRT}_every_day_x6'),
-                            # data_utils.join_base_path(f'ordinal-bptt/results/v3_MRT{MRT}_Kalman_every_day'),
-                            # data_utils.join_base_path(f'ordinal-bptt/results/v3_MRT{MRT}_Transformer_every_day'),
-                            data_utils.join_base_path(f'ordinal-bptt/results/v3_MRT{MRT}_Transformer_every_valid_day_seq_len_7'),
-                            # data_utils.join_base_path(f'ordinal-bptt/results/v3_MRT{MRT}_SimpleModels_every_day'),
-                            # data_utils.join_base_path(f'ordinal-bptt/results/v3_MRT{MRT}_batch02'),
-                            # data_utils.join_base_path(f'ordinal-bptt/results/v3_MRT{MRT}_VAR_10splits'),
-                            # data_utils.join_base_path(f'ordinal-bptt/results/v3_MRT{MRT}_VAR_10splits_input_all'),
-                            # data_utils.join_base_path(f'ordinal-bptt/results/v3_MRT{MRT}_VAR_10splits_input_sleepjoy'),
-                            # data_utils.join_base_path(f'ordinal-bptt/results/v3_MRT{MRT}_VAR_10splits_input_social')
-                            # data_utils.join_base_path(f'ordinal-bptt/results/v3_MRT{MRT}_Kalman_10splits_input_all'),
-                            # data_utils.join_base_path(f'ordinal-bptt/results/v3_MRT{MRT}_Kalman_10splits_input_sleepjoy'),
-                            # data_utils.join_base_path(f'ordinal-bptt/results/v3_MRT{MRT}_Kalman_10splits_input_social')
-                            # data_utils.join_base_path(f'ordinal-bptt/results/v3_MRT{MRT}_10splits_on_differences_only'),
-                            # data_utils.join_base_path(f'ordinal-bptt/results/v3_MRT{MRT}_10splits_on_differences'),
-                         ]
+    eval_args = parser.parse_args()
 
-    for main_dir in evaluate_main_dirs:
-        if not os.path.exists(main_dir) and main_dir.endswith('_best_runs'):
-            utils.extract_best_runs(main_dir.removesuffix('_best_runs'))
-        eval_args = EvaluationArgs(main_dir,
-                                    test_data_dir=data_utils.dataset_path(MRT, 'processed_csv_no_con'),
-                                    # hyperparameters=['valid_training_data_points', 'valid_training_data_ratio', 'train_on_data_until_timestep', 'participant',
-                                    #                  'dim_z', 'dim_y'],
-                                    # hyperparameters=['participant', 'intervention', 'train_on_data_until_timestep', 'latent_model', 'valid_training_data_ratio', 'valid_training_data_points',
-                                    #                  'train_on_last_n_steps', 'data_dropout_to_level'],
-                                    hyperparameters=['latent_model', 'intervention', 'valid_training_data_points', 'valid_training_data_ratio', 'train_on_data_until_timestep', 'participant', 'seq_len'],
-                                    random_z0=False,
-                                    trajectory_samples=1,
-                                    ahead_prediction_steps=7,
-                                    epoch_criterion='latest',
-                                    prewarm_steps_on_train_set=0,
-                                    calculate_max_lyapunov=False,
-                                    get_training_time=False,
-                                    get_number_of_params=False,
-                                    allow_test_inputs=True,
-                                    # USE TEST SPLIT FILE TO EVALUATE EACH MODEL ON SEVERAL DAYS
-                                    # test_split_file='/home/janik.fechtelpeter/Documents/reallaborai4u/data_management/train_test_splits/valid_first_alarms_no_con_smoothed.csv',
-                                    # USE FIRST ALARMS FILE & TEST SET OFFSET DAYS TO EVALUATE MODEL ON DAY NO. (VALIDATION DAY + N)
-                                    # test_set_offset_days=1,                                    
-                                    # first_alarms_file=data_utils.train_test_split_path(MRT, 'first_alarms.csv'),
-                                    # DO NOT SPECIFY ANY TEST FILE TO EVALUATE ON VALIDATION SET
-                                    # exclude_hypers={'train_on_data_until_timestep':[3]},
-                                    # include_hypers={'participant':'140.0'},
-                                    ensemble_predictors=True,
-                                    buggy_version_of_ensemble=False,
-                                    observation_model_version='pseudoinverse',     # Options: 'pseudoinverse', 'empirical covariance', 'gaussian obs model'
-                                    preload_data=False,
-                                    label = '7stepsahead_interv',
-                                    # file_format = 'json',
-                                    overwrite=False,
-                                    verbose='log',
-                                    num_workers=10
-                                    )
-        evaluate_complete_directory(eval_args)
+    for project in eval_args.evaluate_projects:
+        project_args = copy.copy(eval_args)
+        project_args.project_name = project        
+        evaluate_complete_directory(project_args)

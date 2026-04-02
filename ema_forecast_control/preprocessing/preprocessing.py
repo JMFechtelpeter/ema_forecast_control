@@ -1,7 +1,7 @@
 from typing import Optional
 import yaml
 import pandas as pd
-from ema_forecast_control.preprocessing import preprocessing_functions, prepare_timestamp
+from ema_forecast_control.preprocessing import preprocessing_functions
 
 def get_pipeline(project: str) -> dict:
     with open(f'ema_forecast_control/projects/{project}.yml', 'r') as file:
